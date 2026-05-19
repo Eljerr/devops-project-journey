@@ -21,7 +21,7 @@ spec:
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mysql-scret
+                  name: mysql-secret
                   key: mysql-root-password
           ports:
             - containerPort: 80
