@@ -11,7 +11,7 @@ stringData:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql-d
+  name: mysql-db
 spec:
   replicas: 1
   selector:
@@ -26,11 +26,12 @@ spec:
         - name: mysql
           image: mysql:8.0
           env:
-            - name: MYSQL-ROOT-PASSWORD
+            - name: MYSQL_ROOT_PASSWORD
               valueFrom:
-                name: mysql-secret
-                key: mysql-root-password
-          port:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: mysql-root-password
+          ports:
             - containerPort: 3306
 
 ---
