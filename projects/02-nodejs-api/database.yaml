@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: default
+type: Opaque
+stringData:
+  mysql-root-password: "mahiru"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-d
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: database
+  template:
+    metadata:
+      labels:
+        app: database
+    spec:
+      containers:
+        - name: mysql
+          image: mysql:8.0
+          env:
+            - name: MYSQL-ROOT-PASSWORD
+              valueFrom:
+                name: mysql-secret
+                key: mysql-root-password
+          port:
+            - containerPort: 3306
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector:
+    app: database
+  ports:
+    - port: 3306
+      targetPort: 3306
