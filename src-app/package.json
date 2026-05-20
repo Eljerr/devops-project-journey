@@ -1,7 +1,7 @@
 {
-  "nama": "project-02-api",
+  "name": "project-02-api",
   "version": "1.0.0",
-  "description": "Simple Node.js API for DevOps Portofolio",
+  "description": "Simple Node.js API",
   "main": "Server.js",
   "scripts": {
     "start": "node server.js"
