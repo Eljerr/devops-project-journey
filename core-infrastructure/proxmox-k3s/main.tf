@@ -113,6 +113,54 @@ resource "proxmox_lxc" "k8s_workers" {
 
 }
 
+
+resource "proxmox_lxc" "monitoring" {
+
+  target_node     = "desktop"
+  hostname        = "monitoring-secops"
+  ostemplate      = var.xlc_template
+  password        = var.xlc_password
+  unprivileged    = true
+  vmid            = 203
+  ssh_public_keys = var.ssh_public_keys
+
+  cores  = 1
+  memory = 1024
+  swap   = 512
+  start  = true
+
+  rootfs {
+    storage = "local-lvm"
+    size    = "10G"
+  }
+
+  network {
+    name   = "eth0"
+    bridge = "vmbr0"
+    ip     = "${var.lxc_ip_base}3/24"
+    gw     = var.lxc_gateway
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "root"
+    host        = "${var.lxc_ip_base}3"
+    private_key = file(var.ssh_private_key_path)
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "apt-get update",
+      "apt-get install -y vim"
+    ]
+  }
+
+  features {
+    nesting = true
+  }
+
+}
+
 output "lxc_ips" {
   description = "Daftar IP untuk K8s Master dan Workers"
   value = merge(

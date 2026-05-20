@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-expoter
+  namespace: kube-system
+spec:
+  selector:
+    matchLabels:
+      app: node-expoter
+  template:
+    metadata:
+      labels:
+        app: node-expoter
+    spec:
+      hostNetwork: true
+      containers:
+        - name: node-expoter
+          image: prom/node-expoter:latest
+          ports:
+            - containerPort: 9100
+              hostPort: 9100
+          volumeMounts:
+            - mountPath: /host/sys
+              name: sys
+              readOnly: true
+            - mountPath: /host/root
+              name: root
+              readOnly: true
+      volumes:
+        - name: sys
+          hostPath:
+            path: /sys
+        - name: root
+          hostPath:
+            path: /
