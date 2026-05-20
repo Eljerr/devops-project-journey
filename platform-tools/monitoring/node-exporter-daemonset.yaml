@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: node-expoter
+  name: node-exporter
   namespace: kube-system
 spec:
   selector:
     matchLabels:
-      app: node-expoter
+      app: node-exporter
   template:
     metadata:
       labels:
-        app: node-expoter
+        app: node-exporter
     spec:
       hostNetwork: true
       containers:
-        - name: node-expoter
-          image: prom/node-expoter:latest
+        - name: node-exporter
+          image: prom/node-exporter:latest
           ports:
             - containerPort: 9100
               hostPort: 9100
