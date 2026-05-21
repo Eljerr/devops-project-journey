@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: project-02-nginx
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://github.com/Eljerr/devops-project-journey.git"
+    targetRevision: HEAD
+    path: projects/02-nodejs-api
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: default
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
