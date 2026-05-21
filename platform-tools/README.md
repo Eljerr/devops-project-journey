@@ -35,3 +35,10 @@ This folder contains ArgoCD *Application* manifests that dictate how our applica
 #### App of Apps (Bootstrap)
 
 - **`bootstrap-argocd.yml`**: This is the root "App of Apps" configuration. It continuously monitors the `platform-tools/argocd` folder in this repository. Any new application manifest placed in that folder will be automatically detected and deployed to the Kubernetes cluster by ArgoCD. This enables the installation of new applications to the Kubernetes cluster simply by pushing a YAML file to GitHub—eliminating the need to SSH into the master node or manually run `kubectl apply`.
+
+### GitOps Workflows: Activating & Deactivating Applications
+
+Because the "App of Apps" configuration is configured with `prune: true`, managing the lifecycle of applications is entirely Git-driven:
+
+- **To Activate/Deploy:** Place an application's ArgoCD manifest inside the `argocd/` directory. ArgoCD will detect the file and deploy the defined resources.
+- **To Deactivate/Uninstall:** Move the manifest file out of the `argocd/` directory (for example, into an `argocd-disabled/` folder). Upon pushing this change to GitHub, ArgoCD will detect the removal and automatically **prune (delete)** all associated resources (Deployments, Pods, DaemonSets, etc.) from the Kubernetes cluster. This provides an elegant way to pause workloads and free up server resources (like RAM) while preserving the configuration files for future use.
