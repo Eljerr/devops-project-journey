@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: "https://github.com/Eljerr/devops-project-portofolio.git"
+    repoURL: "https://github.com/Eljerr/devops-project-journey.git"
     targetRevision: HEAD
     path: platform-tools/monitoring
   destination:

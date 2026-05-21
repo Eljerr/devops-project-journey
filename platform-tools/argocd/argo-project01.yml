@@ -6,11 +6,11 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/Eljerr/devops-project-portofolio.git'
+    repoURL: "https://github.com/Eljerr/devops-project-journey.git"
     targetRevision: HEAD
     path: projects/01-hello-nginx
   destination:
-    server: 'https://kubernetes.default.svc'
+    server: "https://kubernetes.default.svc"
     namespace: default
   syncPolicy:
     automated:

@@ -1,18 +1,18 @@
-apiVersion: argoproj.io/v1aplha1
-kind: Aplication
+apiVersion: argoproj.io/v1alpha1
+kind: Application
 metadata:
   name: root-app-of-apps
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: "https://github.com/Eljerr/devops-project-portofolio.git"
-    tagetRevision: main
+    repoURL: "https://github.com/Eljerr/devops-project-journey.git"
+    targetRevision: main
     path: platform-tools/argocd
-destination:
-  server: "https://kubernetes.default.svc"
-  namespace: argocd
-syncPolicy:
-  automated:
-    prune: true
-    selHeal: true
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
