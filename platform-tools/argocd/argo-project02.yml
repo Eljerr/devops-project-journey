@@ -1,14 +1,16 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: project-01-nginx
+  name: project-02-nginx
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   project: default
   source:
     repoURL: "https://github.com/Eljerr/devops-project-journey.git"
     targetRevision: HEAD
-    path: projects/01-hello-nginx
+    path: projects/02-nodejs-api
   destination:
     server: "https://kubernetes.default.svc"
     namespace: default
