@@ -30,4 +30,8 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 #### `argocd/`
 This folder contains ArgoCD *Application* manifests that dictate how our applications are deployed.
 
-- **`argo-project01.yml`**: This is an `Application` manifest. It tells ArgoCD to monitor the `projects/01-hello-nginx` folder in this GitHub repository (`https://github.com/Eljerr/devops-project-portofolio.git`). If there are any changes, ArgoCD will automatically deploy (sync) those changes into the Kubernetes cluster (in the `default` namespace). This file also has `automated prune` and `selfHeal` features enabled.
+- **`argo-project01.yml`**: This is an `Application` manifest. It tells ArgoCD to monitor the `projects/01-hello-nginx` folder in this GitHub repository (`https://github.com/Eljerr/devops-project-journey.git`). If there are any changes, ArgoCD will automatically deploy (sync) those changes into the Kubernetes cluster (in the `default` namespace). This file also has `automated prune` and `selfHeal` features enabled.
+
+#### App of Apps (Bootstrap)
+
+- **`bootstrap-argocd.yml`**: This is the root "App of Apps" configuration. It continuously monitors the `platform-tools/argocd` folder in this repository. Any new application manifest placed in that folder will be automatically detected and deployed to the Kubernetes cluster by ArgoCD. This enables the installation of new applications to the Kubernetes cluster simply by pushing a YAML file to GitHub—eliminating the need to SSH into the master node or manually run `kubectl apply`.
