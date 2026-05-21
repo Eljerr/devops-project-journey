@@ -38,7 +38,7 @@ This folder contains ArgoCD *Application* manifests that dictate how our applica
 
 ### GitOps Workflows: Activating & Deactivating Applications
 
-Because the "App of Apps" configuration is configured with `prune: true`, managing the lifecycle of applications is entirely Git-driven:
+While pure GitOps typically dictates removing files from the repository to uninstall applications, managing application lifecycles can be more flexibly handled directly via the ArgoCD Web UI:
 
-- **To Activate/Deploy:** Place an application's ArgoCD manifest inside the `argocd/` directory. ArgoCD will detect the file and deploy the defined resources.
-- **To Deactivate/Uninstall:** Move the manifest file out of the `argocd/` directory (for example, into an `argocd-disabled/` folder). Upon pushing this change to GitHub, ArgoCD will detect the removal and automatically **prune (delete)** all associated resources (Deployments, Pods, DaemonSets, etc.) from the Kubernetes cluster. This provides an elegant way to pause workloads and free up server resources (like RAM) while preserving the configuration files for future use.
+- **Selective Deployment via UI:** Instead of constantly editing or moving files in the repository to turn applications on or off, you can disable the `automated sync` and `prune` features for specific applications.
+- **GUI Resource Management:** By relying on the ArgoCD UI, the declarative configurations remain safely stored in Git, but you gain the manual control to `Sync` or `Delete` the application resources on demand. This provides a highly convenient way to pause specific workloads (such as `01-hello-nginx`, `02-nodejs-api`, or `monitoring-secops`) to free up server RAM, and easily reactivate them with a single click whenever necessary, without needing to create new git commits.

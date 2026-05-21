@@ -12,8 +12,6 @@ spec:
       labels:
         app: node-exporter
     spec:
-      nodeSelector:
-        node-role.kubernetes.io/disabled: "true"
       hostNetwork: true
       containers:
         - name: node-exporter
