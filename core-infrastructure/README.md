@@ -27,6 +27,8 @@ Contains the configuration deployed on the STB gateway.
 - Enables exposing local services to the internet without the need for port forwarding or a static public IP.
 
 ### `proxmox-k3s/`
-Contains Infrastructure-as-Code (IaC) using Terraform to automatically provision the K3s cluster on the Proxmox server.
-- `main.tf` and `variables.tf` define the creation of unprivileged LXC containers for the Kubernetes nodes.
-- Automatically bootstraps K3s installation via SSH provisioners for the master and worker nodes.
+Contains Infrastructure-as-Code (IaC) using Terraform to automatically provision LXC containers on the Proxmox server. The same `main.tf` provisions **three LXC containers**:
+
+- **`k8s-master` (vmid: 200):** 2 cores, 2GB RAM. K3s is automatically installed via SSH provisioner after the container is created.
+- **`k8s-workers-1` & `k8s-workers-2` (vmid: 201-202):** 2 cores, 2GB RAM each. Worker nodes that join the master.
+- **`monitoring-secops` (vmid: 203):** 1 core, 1GB RAM + 512MB swap. Dedicated LXC for the monitoring stack (Prometheus, Grafana, etc.) — provisioned here, but its Docker Compose config lives in `monitoring-secops/`.

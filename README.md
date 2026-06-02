@@ -3,9 +3,9 @@
 ![CI DevSecOps](https://github.com/Eljerr/devops-project-journey/actions/workflows/ci-devsecops.yml/badge.svg)
 ![Last Commit](https://img.shields.io/github/last-commit/Eljerr/devops-project-journey)
 
-Welcome to the DevOps Project Journey! This repository serves as a comprehensive guide and documentation of practical DevOps implementations, focusing on infrastructure provisioning, GitOps, container orchestration, and application deployment.
+This is a **personal learning journal** — a record of everything I've explored and built while studying DevOps from scratch. It's not a step-by-step tutorial, but rather a collection of real, working configurations paired with honest notes on how and why things were done a certain way.
 
-This repository is designed to document hands-on configurations and act as a reference for the broader community, as well as a technical knowledge base.
+If you're on a similar learning path, hopefully the configs, pipeline setups, and the reasoning behind each decision here can serve as a useful reference or starting point for your own experiments.
 
 ---
 
@@ -77,10 +77,10 @@ Contains the setup for observability and basic security. The monitoring LXC cont
 > **Security (UFW):** UFW is recognized as a best practice for hardening security. However, to streamline the initial setup phase and avoid the repetitive process of configuring it individually on every server, strict UFW configuration is deferred for now.
 
 ### 4. [Application Projects](./projects/)
-Showcases individual application workloads deployed to the Kubernetes cluster via ArgoCD.
+Documents the application workloads I deployed to the Kubernetes cluster via ArgoCD.
 
-- **[Hello Nginx (01-hello-nginx)](./projects/01-hello-nginx/):** Understand Kubernetes basics (Pods, Deployments, Services) by deploying a simple Nginx web server.
-- **[Node.js API + Database (02-nodejs-api)](./projects/02-nodejs-api/):** Deploy a functional multi-tier application connecting a Node.js backend (`mybinichizuru/project-02-api`) to a MySQL database using ConfigMaps and Secrets. The image tag in `backend.yaml` is automatically updated by the CI/CD pipeline.
+- **[Hello Nginx (01-hello-nginx)](./projects/01-hello-nginx/):** My first hands-on with Kubernetes basics (Pods, Deployments, Services) — deploying a simple Nginx web server.
+- **[Node.js API + Database (02-nodejs-api)](./projects/02-nodejs-api/):** A multi-tier setup connecting a Node.js backend (`mybinichizuru/project-02-api`) to a MySQL database using ConfigMaps and Secrets. The image tag in `backend.yaml` is automatically updated by the CI/CD pipeline.
 
 ### 5. [Application Source Code](./src-app/)
 Contains the source code for the Node.js API application that is built and deployed through the CI/CD pipeline.
@@ -115,7 +115,7 @@ A Jenkins Declarative Pipeline **template** at the repository root. It defines t
 
 ---
 
-## 🚀 How to Use This Repository
+## 🗺️ Navigating This Repository
 
 1. **Infrastructure:** Review `core-infrastructure/` to see how the base environment is provisioned using Terraform.
 2. **Platform:** Check `platform-tools/` to understand how GitOps is configured with ArgoCD (App of Apps pattern).

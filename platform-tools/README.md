@@ -1,6 +1,6 @@
 # Platform Tools
 
-This directory contains configuration files and manifests for various platform-level tools used to manage, monitor, and deploy our infrastructure and applications.
+This directory contains configuration for platform-level tools I set up to manage and deliver applications to the K3s cluster — primarily ArgoCD for GitOps, and Node Exporter for cluster-wide metrics collection.
 
 ## ArgoCD
 
@@ -42,3 +42,12 @@ While pure GitOps typically dictates removing files from the repository to unins
 
 - **Selective Deployment via UI:** Instead of constantly editing or moving files in the repository to turn applications on or off, you can disable the `automated sync` and `prune` features for specific applications.
 - **GUI Resource Management:** By relying on the ArgoCD UI, the declarative configurations remain safely stored in Git, but you gain the manual control to `Sync` or `Delete` the application resources on demand. This provides a highly convenient way to pause specific workloads (such as `01-hello-nginx`, `02-nodejs-api`, or `monitoring-secops`) to free up server RAM, and easily reactivate them with a single click whenever necessary, without needing to create new git commits.
+
+---
+
+## Monitoring
+
+### `monitoring/`
+Contains a `node-exporter-daemonset.yaml` that deploys Node Exporter as a DaemonSet across **all K8s cluster nodes**. This ensures every node exposes host-level metrics (CPU, memory, disk, network) to be scraped by the Prometheus instance running in the `monitoring-secops` LXC container.
+
+Note: The monitoring stack itself (Prometheus + Grafana) lives in `monitoring-secops/` at the repo root and runs via Docker Compose on a dedicated LXC container — separate from the K8s cluster.
