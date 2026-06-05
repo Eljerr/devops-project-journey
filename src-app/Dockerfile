@@ -4,7 +4,7 @@ RUN apk update && apk upgrade
 
 COPY package*.json ./
 
-RUN ci install --only=production
+RUN npm ci --only=production
 
 COPY server.js .
 
