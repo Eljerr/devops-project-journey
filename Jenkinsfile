@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKERHUB = credentials('dockerhub-creds')
         IMAGE_NAME = "mybinichizuru/project-02-api"
-        IMAGE_TAG = "v1.0.${BUILD_NUMBER}"
+        IMAGE_TAG = "jenkins-${env.GIT_COMMIT.take(7)}"
     }
 
     stages {
