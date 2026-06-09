@@ -27,7 +27,14 @@ pipeline {
         stage('Menjalankan Trivy Scanning') {
             steps {
                 echo 'Menjalankan Security Scan pakai Trivy...'
-                sh "trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed ${IMAGE_NAME}:${IMAGE_TAG}"
+                sh """
+                  trivy image --reset-db || true
+                  trivy image \
+                      --exit-code 1 \
+                      --severity HIGH,CRITICAL \
+                      --ignore-unfixed \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
+                  """
             }
         }
 
@@ -38,7 +45,26 @@ pipeline {
                 sh "docker push ${IMAGE_NAME}:${IMAGE_TAG}"
             }
         }
-    } 
+    
+
+        stage('GitOps Handoff (Update Manifest)') {
+            steps {
+                echo 'Update Manifest k8s dan push ke Git untuk Argo CD...'
+                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                    sh """
+                    git config user.name "Jenkins GitOps Bot"
+                    git config user.email "jenkins@devops.local"
+                    
+                    sed -i "s|image: ${IMAGE_NAME}:.*|image: ${IMAGE_NAME}:${IMAGE_TAG}|g" projects/02-nodejs-api/backend.yaml
+
+                    git add projects/02-nodejs-api/backend.yaml
+                    git commit -m "chore: auto-update image tag to ${IMAGE_TAG} [skip ci]"
+                    git push https://\${GITHUB_TOKEN}@github.com/Eljerr/devops-project-journey.git HEAD:main
+                    """
+                  }
+              }
+          }
+      }
 
     post {
         success {
