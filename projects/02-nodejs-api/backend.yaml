@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: api-container
-          image: mybinichizuru/project-02-api:jenkins-96bda3b
+          image: mybinichizuru/project-02-api:v1.0.35
           env:
             - name: DB_HOST
               value: "mysql-service"
