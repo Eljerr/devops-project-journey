@@ -7,7 +7,7 @@ COPY package*.json ./
 
 RUN npm ci --only=production
 
-COPY server.js .
+COPY app.js server.js ./
 
 EXPOSE 80
 
