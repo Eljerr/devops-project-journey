@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: mysql-secret
-  namespace: devops-prod
+  namespace: default
 type: Opaque
 stringData:
   mysql-root-password: "secret"
@@ -12,7 +12,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql-db
-  namespace: devops-prod
 spec:
   replicas: 1
   selector:
@@ -40,7 +39,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mysql-service
-  namespace: devops-prod
 spec:
   selector:
     app: database

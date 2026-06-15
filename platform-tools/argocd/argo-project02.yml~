@@ -11,7 +11,7 @@ spec:
     path: projects/02-nodejs-api
   destination:
     server: "https://kubernetes.default.svc"
-    namespace: devops-prod
+    namespace: default
   syncPolicy:
     automated:
       prune: true
