@@ -1,0 +1,21 @@
+groups:
+- name: K3s_Alerts
+  rules:
+  - alert: InstancesDown
+    expr: up == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Server/Instance {{ $labels.instance }} is down!"
+      description: "Node ini tidak merespons selama lebih dari 1 menit."
+    
+  - alert: PodCrashLooping
+     expr: rate(kube_pod_container_status_restart_total[5m]) > 0
+     for: 2m
+     labels:
+       severity: high
+     annotations:
+       summary: "Pod {{ $labels.pod }} sedang CrashLoopBackOff"
+       description: "Pod ini terus-menerus restart. Cek log-nya segera!"
+

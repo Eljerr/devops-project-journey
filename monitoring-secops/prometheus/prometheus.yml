@@ -28,3 +28,12 @@ scrape_configs:
       - targets: ["IP_STB_GATEWAY:8080"]
         labels:
           host: "stb-gateway"
+
+rule_files:
+  - 'alert.rules.yml'
+
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets:
+      - 'alertmanager:9093'
