@@ -29,6 +29,10 @@ scrape_configs:
         labels:
           host: "stb-gateway"
 
+  - job_name: 'k3s-kube-state-metrics'
+    static_configs:
+      - targets: ['<IP_NODE_K3S>':<PORT>]
+
 rule_files:
   - 'alert.rules.yml'
 
