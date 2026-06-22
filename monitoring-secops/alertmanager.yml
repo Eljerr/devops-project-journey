@@ -1,11 +1,14 @@
 route:
-  receiver: 'tim_sre_devops'
+  group_by: ['k3s','HealtyServer']
+
   group_wait: 10s
   group_interval: 5m
   repeat_interval: 3h
 
+  receiver: discord
+
 receivers:
-- name: 'tim_sre_devops'
-  webhook_configs:
-    - url: 'https://discordapp.com/api/webhooks/1509474245443457086/N3A21xor5cLv1P2ZNJXiG52Tazj23MKk2rQ6D_fWPVvZoiVmbPAMOdsbn_1JO__nUgFs'
+- name: discord
+  discord_configs:
+    - webhook_url: '${URL}'
 
