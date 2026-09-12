@@ -57,5 +57,5 @@ func main() {
 		fmt.Println("Error", err2)
 	}
 	offline := ListOfflineServers(registry)
-	fmt.Println("List server offline: ", offline)
+	fmt.Println("List server offline : ", offline)
 }
