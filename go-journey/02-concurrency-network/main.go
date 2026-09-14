@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -42,7 +43,7 @@ func (s Server) HealthStatus() string {
 	return "DOWN"
 }
 
-func CheckAllServers(registry map[string]Server) []string {
+func CheckAllServers(ctx context.Context, registry map[string]Server) []string {
 	var final []string
 	var wg sync.WaitGroup
 
@@ -52,8 +53,18 @@ func CheckAllServers(registry map[string]Server) []string {
 		wg.Add(1)
 		go func(n Server) {
 			defer wg.Done()
-			time.Sleep(1 * time.Second)
-			results <- fmt.Sprintf("%s:%s", n.Name, n.HealthStatus())
+
+			workDuration := 1 * time.Second
+			if n.Name == "database-02" {
+				workDuration = 3 * time.Second
+			}
+
+			select {
+			case <-time.After(workDuration):
+				results <- fmt.Sprintf("%s: %s", n.Name, n.HealthStatus())
+			case <-ctx.Done():
+				results <- fmt.Sprintf("%s: TIMEOUT (%v)", n.Name, ctx.Err())
+			}
 		}(server)
 	}
 
@@ -69,9 +80,10 @@ func CheckAllServers(registry map[string]Server) []string {
 func main() {
 	fmt.Println("=== Berikut Audit Status Server === ")
 
-	start := time.Now()
-	results := CheckAllServers(registry)
-	fmt.Println("Waktu proses: ", time.Since(start))
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	results := CheckAllServers(ctx, registry)
 
 	for _, r := range results {
 		fmt.Println(r)
