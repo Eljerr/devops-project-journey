@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "Nginx Server",
+    "Status": "UP",
+    "Detail": "200 OK"
+  },
+  {
+    "Name": "Database",
+    "Status": "DOWN",
+    "Detail": "HTTP Status: 500"
+  },
+  {
+    "Name": "Payment-gateway",
+    "Status": "DOWN",
+    "Detail": "HTTP Status: 404"
+  }
+]
