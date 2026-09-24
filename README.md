@@ -27,6 +27,9 @@ devops-project-journey/
 ├── 📁 core-infrastructure/    # 🏗️ Hardware, Proxmox, & Gateway configurations
 │   ├── 📁 gateway-stb/        # Nginx + Cloudflared (Docker Compose)
 │   └── 📁 proxmox-k3s/        # Terraform IaC — LXC provisioning for K3s nodes
+├── 📁 go-journey/             # 🐹 Go for DevOps (Fundamentals & Concurrency)
+│   ├── 📁 01-fundamentals/    # Go syntax, structs, & Fleet report generator
+│   └── 📁 02-concurrency-network/ # Goroutines, WaitGroups, & Service health checker
 ├── 📁 monitoring-secops/      # 🔐 Security & Monitoring stack (Docker Compose)
 ├── 📁 platform-tools/         # ⚙️ GitOps, ArgoCD, & Platform-level manifests
 │   ├── 📁 argocd/             # ArgoCD Application manifests
@@ -48,7 +51,7 @@ devops-project-journey/
 These are the primary tools and technologies demonstrated in this repository:
 
 - **Infrastructure & Provisioning:** Proxmox VE, Terraform (telmate/proxmox provider), LXC Containers
-- **Automation & Scripting:** Python (`asyncio`, `aiohttp`, custom monitoring scripts)
+- **Systems & Automation Languages:** Go (Golang), Python (`asyncio`, `aiohttp`)
 - **Containerization:** Docker, Docker Compose, Docker Hub
 - **Container Orchestration & GitOps:** Kubernetes (K3s), ArgoCD
 - **Applications & Databases:** Node.js (Express), Nginx, MySQL
@@ -86,18 +89,23 @@ Documents the application workloads I deployed to the Kubernetes cluster via Arg
 - **[Hello Nginx (01-hello-nginx)](./projects/01-hello-nginx/):** My first hands-on with Kubernetes basics (Pods, Deployments, Services) — deploying a simple Nginx web server.
 - **[Node.js API + Database (02-nodejs-api)](./projects/02-nodejs-api/):** A multi-tier setup connecting a Node.js backend (`mybinichizuru/project-02-api`) to a MySQL database using ConfigMaps and Secrets. The image tag in `backend.yaml` is automatically updated by the CI/CD pipeline.
 
-### 5. [Automation & Learning Scripts](./scripts/)
+### 5. [Go Journey for DevOps](./go-journey/)
+A dedicated learning journey mastering Go (Golang) for building resilient DevOps CLI tools, concurrent diagnostics, and systems programming.
+- **[01-fundamentals](./go-journey/01-fundamentals/):** Core Go syntax, structs, methods, maps, and an infrastructure fleet status report generator.
+- **[02-concurrency-network](./go-journey/02-concurrency-network/):** Concurrent microservice health probes utilizing goroutines, `sync.WaitGroup`, channels, context timeouts, and structured JSON logging (`slog`).
+
+### 6. [Automation & Learning Scripts](./scripts/)
 A dedicated collection of scripts documenting practical DevOps automation, custom tools, and monitoring techniques I've explored and implemented along the way.
 - **[Python Monitoring (01-monitoring-scripts)](./scripts/python/01-monitoring-scripts/):** An asynchronous server health monitoring tool built with Python, `asyncio`, and `aiohttp`. Demonstrates non-blocking concurrent polling across multiple HTTP/HTTPS endpoints, real-time logging, and generating diagnostic JSON health reports.
 
-### 6. [Application Source Code](./src-app/)
+### 7. [Application Source Code](./src-app/)
 Contains the source code for the Node.js API application that is built and deployed through the CI/CD pipeline.
 
 - **`server.js`:** A simple Express.js API (runs on port 80) that exposes a health-check endpoint and reads the `DB_HOST` environment variable injected by Kubernetes.
 - **`Dockerfile`:** Containerizes the app using `node:20-alpine` as the base image. Includes `apk update && apk upgrade` to minimize OS-level vulnerabilities before the image is scanned by Trivy.
 - **`.trivyignore`:** Lists specific CVEs that are acknowledged but cannot be fixed immediately (e.g., unfixed upstream patches or transitive NPM dependency vulnerabilities), allowing the CI pipeline to proceed.
 
-### 7. CI/CD & DevSecOps (GitHub Actions)
+### 8. CI/CD & DevSecOps (GitHub Actions)
 Continuous Integration and DevSecOps practices are integrated using GitHub Actions (`.github/workflows/ci-devsecops.yml`). The pipeline triggers on any push to `main` that modifies the `src-app/` directory.
 
 The full pipeline flow is:
@@ -118,7 +126,7 @@ Code Push → CodeQL Analysis → Docker Build → Trivy Scan → Push to Docker
 > 2. **Transitive NPM Dependencies:** Vulnerabilities in `node_modules` (e.g., `cross-spawn`, `glob`, `tar`) cannot be patched via `apk` — they are locked in `package-lock.json`.
 > 3. **Risk Acceptance & Exception Management:** In real-world scenarios, explicitly ignoring unfixable CVEs (`.trivyignore`) is standard practice while continuing to monitor for future patches.
 
-### 8. [Jenkinsfile](./Jenkinsfile)
+### 9. [Jenkinsfile](./Jenkinsfile)
 A Jenkins Declarative Pipeline **template** at the repository root. It defines the standard pipeline stages (`Checkout → Build → Test → Deploy`) aligned with the CI/CD workflow of this project. Currently, the stages contain placeholder `echo` commands and are not yet actively implemented — the primary CI/CD automation is handled by **GitHub Actions**. This file serves as documentation for an alternative Jenkins-based pipeline that can be extended in the future.
 
 ---
@@ -133,6 +141,7 @@ A Jenkins Declarative Pipeline **template** at the repository root. It defines t
    kubectl apply -f projects/01-hello-nginx/app-nginx.yaml
    kubectl apply -f projects/02-nodejs-api/
    ```
-5. **Scripts:** Check out `scripts/python/01-monitoring-scripts/` for custom DevOps monitoring automation and Python asynchronous scripting.
-6. **Application Source:** See `src-app/` for the Node.js API source code, Dockerfile, and `.trivyignore`.
-7. **CI/CD Pipelines:** Inspect `.github/workflows/ci-devsecops.yml` to observe how automated Docker builds, CodeQL analysis, Trivy scanning, and GitOps handoff are implemented.
+5. **Go Journey:** Explore `go-journey/` to examine CLI utilities and concurrent health probes written in Golang.
+6. **Scripts:** Check out `scripts/python/01-monitoring-scripts/` for custom DevOps monitoring automation and Python asynchronous scripting.
+7. **Application Source:** See `src-app/` for the Node.js API source code, Dockerfile, and `.trivyignore`.
+8. **CI/CD Pipelines:** Inspect `.github/workflows/ci-devsecops.yml` to observe how automated Docker builds, CodeQL analysis, Trivy scanning, and GitOps handoff are implemented.

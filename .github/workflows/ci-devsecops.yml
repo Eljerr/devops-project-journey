@@ -1,3 +1,5 @@
+name: CI/CD DevSecOps Pipeline
+
 on:
   push:
     branches:
