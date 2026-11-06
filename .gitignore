@@ -19,6 +19,8 @@ Thumbs.db
 # Secrets & Environment Variables
 .env
 *.env
+.envrc
+*.envrc
 *.env.local
 *.local.env
 credentials
@@ -84,3 +86,8 @@ override.tf.json
 
 # Log Files
 *.log
+
+# Obsidian Vault
+.obsidian/
+!.obsidian/templates/
+

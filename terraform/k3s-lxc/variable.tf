@@ -27,9 +27,20 @@ variable "default_gateway" {
   description = "Default gateway untuk akses internet node"
   type        = string
 }
-variable "proxmox_api_url" {
-  type        = string
-  description = "URL API Server Proxmox"
+
+variable "PM_API_URL" {
+  type      = string
+  sensitive = true
+}
+
+variable "PM_API_TOKEN_ID" {
+  type      = string
+  sensitive = true
+}
+
+variable "PM_API_TOKEN_SECRET" {
+  type      = string
+  sensitive = true
 }
 variable "k3s_nodes" {
   description = "Konfigurasi node k3s cluster"
