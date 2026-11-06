@@ -27,8 +27,12 @@
 
 ## Instruksi untuk Agen AI pada Sesi Berikutnya / Langkah Aktif
 
-1. Evaluasi berkas artefak Post-Mortem bersama operator.
-2. Lanjutkan ke materi Sub-modul 1.2 & 1.3:
-   - File Descriptors leak (`deleted open files`), perbandingan `df -h` vs `du`, dan perkakas `lsof` serta `strace`.
-   - Pembuatan unit service systemd dengan pembatasan sumber daya (`MemoryMax`, `CPUQuota`).
-   - Panduan penyusunan Runbook: `docs/runbooks/rb-01-linux-diagnostics-and-hardening.md`.
+1. **Jaga Ritme & Pacing Pembelajaran (Sesuai Konstitusi `AGENTS.md`)**:
+   - Jangan buru-buru atau menumpuk istilah teknis.
+   - Pakai analogi visual *first-principles* sampai operator mendapatkan momen *"Aha!"*.
+   - Operator yang menulis seluruh analisis dan kesimpulan dokumentasi portofolio.
+2. **Mulai Sub-Modul 1.2 & 1.3**:
+   - Bahas konsep **File Descriptors** di `/proc/<PID>/fd`, misteri hilangnya ruang harddisk saat file dihapus tapi masih dipegang proses (`deleted open files`), dan perbedaan mendasar antara `df -h` vs `du`.
+   - Lakukan eksperimen terminal dengan perkakas `lsof` dan `strace`.
+   - Latihan pembuatan unit service `systemd` mandiri dengan pembatasan kuota memori/CPU (`MemoryMax`, `CPUQuota`).
+   - Pandu operator menyusun runbook: `docs/runbooks/rb-01-linux-diagnostics-and-hardening.md`.
