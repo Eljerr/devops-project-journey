@@ -6,6 +6,8 @@
 .DS_Store
 Thumbs.db
 *.desktop
+*Zone.Identifier*
+*:Zone.Identifier
 
 # IDE & Editor Configurations
 .vscode/
