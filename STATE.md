@@ -3,9 +3,9 @@
 ## Status Eksekusi Saat Ini
 
 * **Fase Aktif**: Fase 1 — Fundamental Kernel Linux, Sistem Operasi, dan Manajemen Proses
-* **Sub-Modul Aktif**: 1.2 File Descriptors, Inode, & Misteri Disk Penuh (`deleted open files`)
-* **Status Langkah Siklus**: Tahap 2 (Elaborasi Teori Mikro — Siap memulai penjelasan konsep Sub-Modul 1.2)
-* **Pembaruan Terakhir**: 2026-11-07
+* **Sub-Modul Aktif**: 1.3 Manajemen Layanan `systemd` & Penguatan Host (SSH Hardening)
+* **Status Langkah Siklus**: Tahap 1 (Selesai Sub-Modul 1.2 — Siap masuk Tahap 2 Elaborasi Teori Mikro Sub-Modul 1.3)
+* **Pembaruan Terakhir**: 2026-11-10
 
 ---
 
@@ -28,13 +28,14 @@
 * **[LULUS] 1.1.1 Isolasi Proses & Namespaces**: Memahami secara mendalam konsep isolasi kernel (`pid`, `net`, `mnt`), hierarki `/proc/<PID>/ns`, serta membuktikan bahwa kontainer bukanlah mesin virtual melainkan proses host biasa yang dibatasi visibilitasnya.
 * **[LULUS] 1.1.2 cgroups v2 & Manajemen Kuota Sumber Daya**: Memahami struktur hierarki direktori `/sys/fs/cgroup/`, fungsi `memory.max`, `memory.swap.max`, `cpu.max`, serta `cpuset`. Berhasil mempraktikkan pembatasan memori manual dengan memasukkan PID ke `cgroup.procs`.
 * **[LULUS] 1.1.3 Sinyal OS & Forensik OOM Killer**: Memahami perbedaan fundamental `SIGTERM` (15) vs `SIGKILL` (9), alasan mengapa proses PID 1 mengabaikan `SIGTERM` tanpa signal handler (*kutukan PID 1*), serta memverifikasi langsung eksekusi OOM Killer dengan bukti kode keluar `137` ($128 + 9$) dan counter `memory.events`.
+* **[LULUS] 1.2 File Descriptors, Inode, & Misteri Disk Penuh (deleted open files)**: Memahami secara mendalam pemisahan Dentry vs Inode, filosofi *Everything is a file*, struktur File Descriptor di `/proc/<PID>/fd/`, mekanisme `unlink()`, anomali selisih pelaporan `df` vs `du`, deteksi forensik dengan `lsof +L1`, serta implikasi kritis *file write offset* Open File Table vs `truncate` pada mode `O_APPEND` vs non-append.
 
 ---
 
 ## Status Artefak Portofolio (`docs/`)
 
 * `docs/post-mortems/pm-01-oom-killer-and-inode-exhaustion.md`:
-  * **Status**: Bagian 1 (Investigasi OOM Killer) sudah terbit dengan analisis murni operator. Bagian 2 (Insiden Deleted Open Files / Inode Exhaustion) akan ditambahkan setelah eksperimen Sub-Modul 1.2 selesai.
+  * **Status**: **LENGKAP (PUBLISHED)** — Menggabungkan Bagian 1 (Investigasi OOM Killer cgroups v2) dan Bagian 2 (Anomali Deleted Open Files) berbasis data forensik terminal dan analisis otentik operator.
 * `docs/runbooks/rb-01-linux-diagnostics-and-hardening.md`:
   * **Status**: Belum dibuat (Target penyelesaian di akhir Sub-Modul 1.3).
 
@@ -44,20 +45,24 @@
 
 * **Linux Namespaces**: Dianalogikan sebagai *"kacamata kuda kernel"* — proses tetap berada di lapangan (host) yang sama, tetapi pandangannya dibatasi sehingga mengira dirinya sendirian.
 * **cgroups v2**: Dianalogikan sebagai *"pagar pembatas/jatah ransum fisik"* di tingkat kernel agar proses tidak memonopoli sumber daya host.
+* **Dentry vs Inode & File Descriptor**: Dianalogikan sebagai *"stiker label"* di pintu folder vs *"koper di loker resmi stasiun"*. Perintah `rm` hanya mencopot stiker (`unlink`). Kernel menolak membuang koper fisik selama masih ada tangan proses yang memegang File Descriptor (FD) ke Inode tersebut.
+* **File Offset & Truncation**: Operator secara mandiri membedah bahwa `truncate` ke file descriptor aktif bisa memicu *sparse file* dengan *hole offset* jika proses menulis tanpa flag `O_APPEND`.
 * **Gaya Belajar Operator**: Sangat menyukai pembedahan *first-principles* (membuktikan lewat direktori virtual `/proc` dan `/sys` secara langsung di terminal, bukan sekadar menghafal perintah).
 
 ---
 
 ## Kendala Teknis & Catatan Sesi Terakhir (Active Blockers)
 
-* Tidak ada kendala teknis. Ritme belajar dijaga tetap tenang dan bertahap sesuai konstitusi `AGENTS.md` (aturan *Turn-Gate*: satu tahap per balasan).
+* Tidak ada kendala teknis. Sub-Modul 1.2 selesai dengan pemahaman mendalam melampaui ekspektasi dasar.
 
 ---
 
 ## Instruksi Eksplisit untuk Agen AI pada Sesi Berikutnya
 
 1. **Patuhi Aturan Turn-Gate (`AGENTS.md`)**: Jangan menggabungkan teori (Tahap 2) dan instruksi praktik (Tahap 3) dalam satu pesan.
-2. **Eksekusi Sekarang (Tahap 2 untuk Sub-Modul 1.2)**:
-   * Jelaskan dengan analogi visual *first-principles* bagaimana kernel Linux mengelola **File Descriptors** di `/proc/<PID>/fd` dan konsep *Inode*.
-   * Jelaskan mengapa ketika sebuah file berukuran besar dihapus (`rm`) saat masih dibuka oleh sebuah proses aktif, ruang disk pada `df -h` tidak berkurang sedangkan pada `du` terlihat sudah hilang (*deleted open files mystery*).
-   * Ajukan maksimal 2 pertanyaan konseptual untuk menguji pemahaman operator, lalu **BERHENTI (HARD STOP)** menunggu jawaban operator sebelum memberikan instruksi eksperimen `lsof` dan `strace` di Tahap 3.
+2. **Eksekusi Sesi Berikutnya (Sub-Modul 1.3: Manajemen Layanan systemd & SSH Hardening)**:
+   * **Tahap 2 (Elaborasi Teori Mikro)**:
+     - Jelaskan arsitektur `systemd` sebagai PID 1, anatomi berkas unit (`[Unit]`, `[Service]`, `[Install]`).
+     - Jelaskan integrasi `systemd` dengan `cgroups v2` (`MemoryMax`, `CPUQuota`).
+     - Jelaskan konsep dasar SSH hardening (asymmetric cryptography Ed25519, penonaktifan password auth & root login) yang akan diterapkan di Proxmox/STB.
+     - Ajukan 1-2 pertanyaan konseptual dan **BERHENTI (HARD STOP)** menunggu jawaban operator.
