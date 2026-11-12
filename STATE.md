@@ -2,10 +2,10 @@
 
 ## Status Eksekusi Saat Ini
 
-* **Fase Aktif**: Fase 1 — Fundamental Kernel Linux, Sistem Operasi, dan Manajemen Proses (SELESAI — Siap Transisi ke Fase 2)
-* **Sub-Modul Aktif**: Transisi ke **Fase 2: Jaringan Komputer, Keamanan Host, dan Arsitektur Reverse Proxy** (Sub-Modul 2.1: Packet Flow, Routing, & DNS)
-* **Status Langkah Siklus**: Selesai Tahap 4 (Dokumentasi Runbook RB-01 Terbit & Log Refleksi Tuntas)
-* **Pembaruan Terakhir**: 2026-11-11
+* **Fase Aktif**: Fase 2 — Jaringan Komputer, Keamanan Host, dan Arsitektur Reverse Proxy
+* **Sub-Modul Aktif**: **2.2: Linux Netfilter, Firewalling (UFW/iptables), & Gateway Rebuild** (Target: `archive/v1/core-infrastructure/gateway-stb/`)
+* **Status Langkah Siklus**: Selesai Sub-Modul 2.1 (Konsep Note Terbit) — Siap Masuk Tahap 2 Teori Mikro Sub-Modul 2.2
+* **Pembaruan Terakhir**: 2026-11-12
 
 ---
 
@@ -13,7 +13,7 @@
 
 1. **Workstation / Sandbox — Inner Loop (PC WSL2 / Host Linux)**:
    * *Spesifikasi*: AMD Ryzen 5 2600 (6C/12T), RAM 16 GB (`x86_64`), CachyOS Linux (Kernel 7.3.3-cachyos, ZRAM zstd enabled).
-   * *Peran*: Lingkungan eksperimen cepat (isolasi kernel, cgroups, simulasi proses, build Docker lokal, dan penulisan kode Go/Python).
+   * *Peran*: Lingkungan eksperimen cepat (isolasi kernel, cgroups, simulasi proses, build Docker lokal, verifikasi socket/firewall, dan penulisan kode Go/Python).
 2. **Compute & Staging Cluster — Outer Loop (Proxmox VE Host)**:
    * *Spesifikasi*: Laptop Rekondisi (CPU 2 Cores, RAM 8 GB, `x86_64`).
    * *Peran*: Menjalankan kontainer LXC *unprivileged* untuk klaster K3s (1 Master, 2 Worker) dan node Monitoring. Status: Menyala, menunggu audit ulang di Fase 5.
@@ -29,46 +29,55 @@
 * **[LULUS] 1.1.2 cgroups v2 & Manajemen Kuota Sumber Daya**: Memahami struktur hierarki direktori `/sys/fs/cgroup/`, fungsi `memory.max`, `memory.swap.max`, `cpu.max`, serta `cpuset`. Berhasil mempraktikkan pembatasan memori manual dengan memasukkan PID ke `cgroup.procs`.
 * **[LULUS] 1.1.3 Sinyal OS & Forensik OOM Killer**: Memahami perbedaan fundamental `SIGTERM` (15) vs `SIGKILL` (9), alasan mengapa proses PID 1 mengabaikan `SIGTERM` tanpa signal handler (*kutukan PID 1*), serta memverifikasi langsung eksekusi OOM Killer dengan bukti kode keluar `137` ($128 + 9$) dan counter `memory.events`.
 * **[LULUS] 1.2 File Descriptors, Inode, & Misteri Disk Penuh (deleted open files)**: Memahami secara mendalam pemisahan Dentry vs Inode, filosofi *Everything is a file*, struktur File Descriptor di `/proc/<PID>/fd/`, mekanisme `unlink()`, anomali selisih pelaporan `df` vs `du`, deteksi forensik dengan `lsof +L1`, serta implikasi kritis *file write offset* Open File Table vs `truncate` pada mode `O_APPEND` vs non-append.
-* **[LULUS] 1.3 Manajemen Layanan systemd & Penguatan Host (SSH Hardening)**: 
-  * Memahami arsitektur `systemd` sebagai PID 1, pencegahan akumulasi *zombie processes*, dan deklarasi berkas unit (`[Unit]`, `[Service]`, `[Install]`).
-  * Memahami integrasi deklaratif `systemd` dengan cgroups v2 (`MemoryMax`, `MemorySwapMax=0`, `Restart=on-failure`).
-  * Menemukan dan membongkar fenomena kernel ZRAM/ZSWAP: kompresi byte kosong `bytearray` oleh `zstd` vs penembakan OOM Killer seketika oleh data acak ber-entropi tinggi (`os.urandom`).
-  * Memahami implementasi kriptografi asimetris Ed25519 dan verifikasi hak akses ketat berkas kunci (`600` untuk *private key* dan `644` untuk *public key*).
+* **[LULUS] 1.3 Manajemen Layanan systemd & Penguatan Host (SSH Hardening)**: Memahami arsitektur `systemd` sebagai PID 1, deklarasi unit service, integrasi deklaratif cgroups v2, kompresi ZRAM zstd vs penembakan OOM Killer fisik via `os.urandom`, serta pengamanan kriptografi asimetris Ed25519 (hak akses `600`/`644`).
+* **[LULUS] 2.1 Packet Flow, Routing, Socket Lifecycle, & DNS**:
+  * Memahami bahwa socket jaringan di Linux dipegang sebagai File Descriptor (`fd`) oleh proses aplikasi (dibuktikan dari output `ss -tulpn` `antigravity` dan `systemd-resolve`).
+  * Memahami perlunya TCP 3-Way Handshake sebagai batas minimum matematis pembuktian koneksi dua arah yang andal.
+  * Memverifikasi penolakan instan 0 ms kernel Linux via paket `RST` (`Connection refused`) ketika port tujuan kosong.
+  * Memahami dan memverifikasi siklus penutupan TCP: kehati-hatian `TIME_WAIT` ($2 \times \text{MSL}$) untuk membunuh paket nyasar (didukung mekanisme TTL IP) vs anomali kebocoran socket `CLOSE_WAIT` akibat kode aplikasi lupa memanggil `close()`.
+  * Membedakan konsumsi sumber daya: aplikasi inbound hanya memakan File Descriptor (FD), sedangkan reverse proxy outbound (Nginx) memakan File Descriptor dan Port Sementara (Ephemeral Port).
+  * Memahami arsitektur *Outbound Tunnel* (`cloudflared`) yang meniadakan kebutuhan port forwarding modem, serta optimasi *connection pooling* Nginx `keepalive 32;` (analogi garasi armada mobil standby).
 
 ---
 
 ## Status Artefak Portofolio (`docs/`)
 
 * `docs/post-mortems/pm-01-oom-killer-and-inode-exhaustion.md`:
-  * **Status**: **LENGKAP (PUBLISHED)** — Menggabungkan Bagian 1 (Investigasi OOM Killer cgroups v2) dan Bagian 2 (Anomali Deleted Open Files) berbasis data forensik terminal dan analisis otentik operator.
+  * **Status**: **LENGKAP (PUBLISHED)** — Analisis OOM Killer cgroups v2 & Deleted Open Files.
 * `docs/runbooks/rb-01-linux-diagnostics-and-hardening.md`:
-  * **Status**: **LENGKAP (PUBLISHED)** — Runbook SOP resmi untuk triage insiden OOM-Kill pada layanan `systemd` dan prosedur audit pengerasan akses SSH Ed25519.
+  * **Status**: **LENGKAP (PUBLISHED)** — SOP Triage OOM-Kill & SSH Hardening Ed25519.
+* `docs/concepts/01-tcp-lifecycle-and-proxy-architecture.md`:
+  * **Status**: **LENGKAP (PUBLISHED)** — Catatan atomik Obsidian mengenai siklus hidup TCP, socket states (`TIME_WAIT` vs `CLOSE_WAIT`), dan arsitektur reverse proxy L4 vs L7.
 
 ---
 
 ## Kamus Model Mental & Analogi Operator (Konteks Lintas Sesi)
 
-* **Linux Namespaces**: Dianalogikan sebagai *"kacamata kuda kernel"* — proses tetap berada di lapangan (host) yang sama, tetapi pandangannya dibatasi sehingga mengira dirinya sendirian.
-* **cgroups v2**: Dianalogikan sebagai *"pagar pembatas/jatah ransum fisik"* di tingkat kernel agar proses tidak memonopoli sumber daya host.
-* **Dentry vs Inode & File Descriptor**: Dianalogikan sebagai *"stiker label"* di pintu folder vs *"koper di loker resmi stasiun"*. Perintah `rm` hanya mencopot stiker (`unlink`). Kernel menolak membuang koper fisik selama masih ada tangan proses yang memegang File Descriptor (FD) ke Inode tersebut.
-* **File Offset & Truncation**: Operator secara mandiri membedah bahwa `truncate` ke file descriptor aktif bisa memicu *sparse file* dengan *hole offset* jika proses menulis tanpa flag `O_APPEND`.
-* **ZRAM vs Entropi Acak**: Data nol berulang dari `bytearray` dikompresi habis oleh ZRAM zstd sehingga lolos dari cgroup limit; sebaliknya data acak murni (`os.urandom`) mustahil dikompresi sehingga langsung memicu OOM Killer fisik.
-* **Kunci SSH Asimetris**: Public key (`.pub`) adalah gembok yang bebas disebar, sedangkan Private key adalah anak kunci rahasia yang tidak boleh keluar dari laptop operator.
+* **Linux Namespaces**: *"Kacamata kuda kernel"* — proses tetap berada di host yang sama, tetapi pandangannya dibatasi.
+* **cgroups v2**: *"Pagar pembatas / ransum fisik"* kuota CPU/RAM di tingkat kernel.
+* **Dentry vs Inode & File Descriptor**: *"Stiker label pintu"* vs *"koper di loker stasiun"*. `rm` hanya mencopot stiker (`unlink`). Kernel menolak membuang koper selama masih ada tangan proses yang memegang FD.
+* **Socket Jaringan**: *"Nomor tiket gagang telepon"* resmi dari kernel ke aplikasi untuk mengirim dan menerima paket.
+* **3-Way Handshake**: Batas minimal 3 langkah pembuktian jalur dua arah antara dua pihak di jaringan tidak andal.
+* **Paket RST**: Satpam kernel yang langsung menolak ketukan di pintu kamar port kosong dalam 0 ms (`Connection refused`).
+* **TIME_WAIT**: Bentuk kehati-hatian pihak pertama pamit menunggu 60 detik agar paket nyasar (dibatasi TTL IP) mati sebelum port dipakai lagi.
+* **CLOSE_WAIT**: Bug aplikasi lupa memanggil `close()` pada socket FD penerima; kernel menolak menutup paksa tanpa instruksi aplikasi sehingga memicu socket/FD leak.
+* **Inbound vs Outbound Resource**: Aplikasi inbound hanya makan FD; Gateway/Reverse proxy outbound makan FD + Port Sementara (Ephemeral Port).
+* **Nginx Keepalive**: Garasi 32 mobil standby untuk dipakai bergilir melayani request paralel tanpa 3-way handshake berulang.
 
 ---
 
 ## Kendala Teknis & Catatan Sesi Terakhir (Active Blockers)
 
-* Seluruh sub-modul pada **Fase 1 (1.1, 1.2, 1.3) telah tuntas 100%**. Seluruh artefak DoD (Post-Mortem & Runbook) telah terbit.
+* Sub-Modul 2.1 resmi **TUNTAS 100%**.
+* Kode legacy terkait gateway tersimpan di `archive/v1/core-infrastructure/gateway-stb/`.
 
 ---
 
-## Instruksi Eksplisit untuk Agen AI pada Sesi Berikutnya
+## Instruksi Eksplisit untuk Sesi Berikutnya
 
-1. **Patuhi Aturan Turn-Gate (`AGENTS.md`)**: Satu tahap per giliran, jaga ritme belajar terukur.
-2. **Eksekusi Fase 2: Jaringan Komputer, Keamanan Host, dan Arsitektur Reverse Proxy**:
-   * **Sub-Modul 2.1**: Packet Flow, Routing, & DNS (`core-infrastructure/gateway-stb/`).
+1. **Patuhi Aturan Turn-Gate (`AGENTS.md`)**: Satu tahap per giliran.
+2. **Masuk ke Sub-Modul 2.2: Linux Netfilter, Firewalling (UFW/iptables), & Gateway Rebuild**:
    * **Tahap 2 (Elaborasi Teori Mikro)**:
-     - Jelaskan Model TCP/IP dan 3-Way Handshake (`SYN`, `SYN-ACK`, `ACK`) serta *TCP States* (`ESTABLISHED`, `TIME_WAIT`, `CLOSE_WAIT`).
-     - Jelaskan pemetaan aliran paket: Internet -> Cloudflare Edge -> `cloudflared` tunnel (STB) -> Nginx Reverse Proxy (STB) -> LAN -> Proxmox K3s NodePort.
-     - Ajukan 1-2 pertanyaan konseptual sokratik dan **BERHENTI (HARD STOP)** menunggu jawaban operator.
+     - Jelaskan rantai Netfilter di Linux kernel (`PREROUTING`, `INPUT`, `FORWARD`, `OUTPUT`, `POSTROUTING`).
+     - Jelaskan **Jebakan Docker vs UFW**: Mengapa perintah `docker run -p 80:80` mem-bypass aturan UFW karena Docker memanipulasi rantai `iptables` secara langsung.
+     - Ajukan 1-2 pertanyaan konseptual sokratik dan **BERHENTI (HARD STOP)** menunggu jawaban operator sebelum masuk ke praktik.
