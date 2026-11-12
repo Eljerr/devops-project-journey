@@ -1,3 +1,6 @@
+> [!WARNING]
+> **PERLU REVISI (audit 2026-11-12)** — format dokumen ini belum mengikuti templat MADR v2 (audit butir A15). Jangan dijadikan rujukan sampai versi v2 terbit.
+
 # ADR-0001: Peran STB sebagai Edge Gateway dan laptop Proxmox sebagai Compute Cluster
 
 * **Status:** Accepted

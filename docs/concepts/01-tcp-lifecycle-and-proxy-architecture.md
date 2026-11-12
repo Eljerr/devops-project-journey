@@ -6,6 +6,9 @@ related-docs: ["[[rb-01-linux-diagnostics-and-hardening]]", "[[0001-hybrid-hardw
 tags: [concept, networking, tcp, nginx, first-principles, interview-prep]
 ---
 
+> [!WARNING]
+> **PERLU REVISI (audit 2026-11-12)** — dokumen v1 ini mengandung dugaan kesalahan. Lihat `ai-context/audit-2026-11-12.md` butir A10–A11. Jangan dijadikan rujukan sampai versi v2 terbit.
+
 # Konsep: Siklus TCP, Socket States, dan Arsitektur Reverse Proxy
 
 ## 1. Analogi Mental & First-Principles (Momen "Aha!" Operator)

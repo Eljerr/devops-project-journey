@@ -2,25 +2,40 @@
 topic: "{Nama Konsep, misal: Linux File Descriptors & Inodes}"
 module-phase: "Fase X.Y"
 date: YYYY-MM-DD
-related-docs: ["[[pm-01-oom-killer-and-inode-exhaustion]]", "[[rb-01-linux-diagnostics-and-hardening]]"]
+author: Asylon
+verification: "{Semua klaim LAB/DOK | Masih ada klaim INGATAN}"
+related-docs: ["[[lab-x.y-nn]]", "[[pm-xx-...]]"]
 tags: [concept, first-principles, interview-prep]
 ---
 
 # Konsep: {Nama Konsep Teknis}
 
-## 1. Analogi Mental & First-Principles (Momen "Aha!")
-<!-- OPERATOR VOICE: Tuliskan analogi visual versimu sendiri agar langsung ingat cara kerjanya dalam 10 detik -->
-{Penjelasan konsep menggunakan analogi dunia nyata versimu sendiri.}
+## 1. Analogi Mental (Momen "Aha!")
+<!-- OPERATOR VOICE: analogi versimu sendiri, bisa diingat dalam 10 detik -->
+{Analogi.}
 
-## 2. Mekanisme Internal (Di Balik Layar Kernel / Sistem)
-{Bagaimana sistem operasi, kernel, atau protokol jaringan mengeksekusi konsep ini secara teknis (misal: struktur direktori di /proc atau /sys).}
+**Batas analogi** — di mana analogi ini tidak lagi akurat:
+<!-- OPERATOR VOICE -->
+{…}
 
-## 3. Pembuktian Langsung di Terminal (One-Liner Proof)
-Perintah cepat untuk melihat dan membuktikan mekanisme ini secara langsung di Linux:
+## 2. Mekanisme Internal
+<!-- Setiap klaim diberi label: [LAB ✓ → lab-id] / [DOK: sumber] / [INGATAN] -->
+* {Klaim 1} [label]
+* {Klaim 2} [label]
+
+## 3. Pembuktian di Terminal
 ```bash
-{Perintah eksperimen singkat di WSL2/Homelab beserta penjelasannya}
+{Perintah singkat untuk membuktikan mekanisme di atas}
 ```
+Bukti lengkap: `docs/labs/{lab-id}.md`
 
-## 4. Jebakan Produksi & Pertanyaan Interview (Gotchas)
-* **Pertanyaan Interview Klasik**: {Pertanyaan yang sering ditanyakan penguji senior terkait topik ini}
-* **Jawaban Taktis Operator**: {Jawaban singkat, padat, dan berbasis pengalaman praktikmu di homelab}
+## 4. Miskonsepsi Awal Saya
+<!-- OPERATOR VOICE: apa yang dulu kamu kira benar, dan apa yang membuktikan itu salah -->
+* Dulu saya kira: {…} → Ternyata: {…} (bukti: {…})
+
+## 5. Jebakan Produksi & Pertanyaan Interview
+* **Pertanyaan**: {…}
+* **Jawaban saya**: <!-- OPERATOR VOICE --> {…}
+
+## 6. Sumber Primer
+* {man page / docs.kernel.org / dokumentasi resmi}

@@ -8,6 +8,9 @@ operator: "Eljerr"
 reviewed-by: "AI Systems Architect Agent"
 ---
 
+> [!WARNING]
+> **PERLU REVISI (audit 2026-11-12)** — dokumen v1 ini mengandung dugaan kesalahan. Lihat `ai-context/audit-2026-11-12.md` butir A1–A7. Jangan dijadikan rujukan sampai versi v2 terbit.
+
 # Post-Mortem: Investigasi Terminasi Proses OOM Killer dan Anomali Disk Penuh (Deleted Open Files)
 
 ---

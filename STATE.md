@@ -1,83 +1,152 @@
-# STATE.md — Memori Status Pembelajaran & Konteks Sesi Aktif
+# STATE.md — Memori Status Pembelajaran
 
-## Status Eksekusi Saat Ini
-
-* **Fase Aktif**: Fase 2 — Jaringan Komputer, Keamanan Host, dan Arsitektur Reverse Proxy
-* **Sub-Modul Aktif**: **2.2: Linux Netfilter, Firewalling (UFW/iptables), & Gateway Rebuild** (Target: `archive/v1/core-infrastructure/gateway-stb/`)
-* **Status Langkah Siklus**: Selesai Sub-Modul 2.1 (Konsep Note Terbit) — Siap Masuk Tahap 2 Teori Mikro Sub-Modul 2.2
-* **Pembaruan Terakhir**: 2026-11-12
+> Agen: baca berkas ini PERTAMA. Bagian "Posisi Saat Ini" menentukan apa yang kamu lakukan.
+> Update berkas ini di akhir sesi atau saat operator mengetik `!selesai`.
 
 ---
 
-## Topologi & Status Infrastruktur Homelab
+## 1. Posisi Saat Ini
 
-1. **Workstation / Sandbox — Inner Loop (PC WSL2 / Host Linux)**:
-   * *Spesifikasi*: AMD Ryzen 5 2600 (6C/12T), RAM 16 GB (`x86_64`), CachyOS Linux (Kernel 7.3.3-cachyos, ZRAM zstd enabled).
-   * *Peran*: Lingkungan eksperimen cepat (isolasi kernel, cgroups, simulasi proses, build Docker lokal, verifikasi socket/firewall, dan penulisan kode Go/Python).
-2. **Compute & Staging Cluster — Outer Loop (Proxmox VE Host)**:
-   * *Spesifikasi*: Laptop Rekondisi (CPU 2 Cores, RAM 8 GB, `x86_64`).
-   * *Peran*: Menjalankan kontainer LXC *unprivileged* untuk klaster K3s (1 Master, 2 Worker) dan node Monitoring. Status: Menyala, menunggu audit ulang di Fase 5.
-3. **Edge Ingress Gateway — Outer Loop (STB Amlogic S905X4)**:
-   * *Spesifikasi*: `ARM64`, RAM 2 GB, OS Ubuntu.
-   * *Peran*: Menjalankan Nginx Reverse Proxy, Cloudflared Tunnel, Node Exporter, dan cAdvisor. Status: Target audit jaringan & firewall di Fase 2.
+| Kunci | Nilai |
+| :--- | :--- |
+| **Fase aktif** | Fase 1 v2 — Re-verifikasi Fondasi Kernel Linux |
+| **Sub-modul aktif** | 1.1 Namespaces, cgroups v2, Sinyal, OOM Killer |
+| **Tahap aktif** | T2 (mode re-verifikasi — lihat bagian 2) |
+| **Mode** | `RE-VERIFIKASI` |
+| **Pembaruan terakhir** | 2026-11-12 |
 
----
-
-## Log Kompetensi Terverifikasi (Sudah Dikuasai Operator)
-
-* **[LULUS] 1.1.1 Isolasi Proses & Namespaces**: Memahami secara mendalam konsep isolasi kernel (`pid`, `net`, `mnt`), hierarki `/proc/<PID>/ns`, serta membuktikan bahwa kontainer bukanlah mesin virtual melainkan proses host biasa yang dibatasi visibilitasnya.
-* **[LULUS] 1.1.2 cgroups v2 & Manajemen Kuota Sumber Daya**: Memahami struktur hierarki direktori `/sys/fs/cgroup/`, fungsi `memory.max`, `memory.swap.max`, `cpu.max`, serta `cpuset`. Berhasil mempraktikkan pembatasan memori manual dengan memasukkan PID ke `cgroup.procs`.
-* **[LULUS] 1.1.3 Sinyal OS & Forensik OOM Killer**: Memahami perbedaan fundamental `SIGTERM` (15) vs `SIGKILL` (9), alasan mengapa proses PID 1 mengabaikan `SIGTERM` tanpa signal handler (*kutukan PID 1*), serta memverifikasi langsung eksekusi OOM Killer dengan bukti kode keluar `137` ($128 + 9$) dan counter `memory.events`.
-* **[LULUS] 1.2 File Descriptors, Inode, & Misteri Disk Penuh (deleted open files)**: Memahami secara mendalam pemisahan Dentry vs Inode, filosofi *Everything is a file*, struktur File Descriptor di `/proc/<PID>/fd/`, mekanisme `unlink()`, anomali selisih pelaporan `df` vs `du`, deteksi forensik dengan `lsof +L1`, serta implikasi kritis *file write offset* Open File Table vs `truncate` pada mode `O_APPEND` vs non-append.
-* **[LULUS] 1.3 Manajemen Layanan systemd & Penguatan Host (SSH Hardening)**: Memahami arsitektur `systemd` sebagai PID 1, deklarasi unit service, integrasi deklaratif cgroups v2, kompresi ZRAM zstd vs penembakan OOM Killer fisik via `os.urandom`, serta pengamanan kriptografi asimetris Ed25519 (hak akses `600`/`644`).
-* **[LULUS] 2.1 Packet Flow, Routing, Socket Lifecycle, & DNS**:
-  * Memahami bahwa socket jaringan di Linux dipegang sebagai File Descriptor (`fd`) oleh proses aplikasi (dibuktikan dari output `ss -tulpn` `antigravity` dan `systemd-resolve`).
-  * Memahami perlunya TCP 3-Way Handshake sebagai batas minimum matematis pembuktian koneksi dua arah yang andal.
-  * Memverifikasi penolakan instan 0 ms kernel Linux via paket `RST` (`Connection refused`) ketika port tujuan kosong.
-  * Memahami dan memverifikasi siklus penutupan TCP: kehati-hatian `TIME_WAIT` ($2 \times \text{MSL}$) untuk membunuh paket nyasar (didukung mekanisme TTL IP) vs anomali kebocoran socket `CLOSE_WAIT` akibat kode aplikasi lupa memanggil `close()`.
-  * Membedakan konsumsi sumber daya: aplikasi inbound hanya memakan File Descriptor (FD), sedangkan reverse proxy outbound (Nginx) memakan File Descriptor dan Port Sementara (Ephemeral Port).
-  * Memahami arsitektur *Outbound Tunnel* (`cloudflared`) yang meniadakan kebutuhan port forwarding modem, serta optimasi *connection pooling* Nginx `keepalive 32;` (analogi garasi armada mobil standby).
+### Instruksi untuk sesi berikutnya (agen)
+1. Ikuti `AGENTS.md` bagian 0 (urutan membaca).
+2. Lewati T0 di sesi pertama ini (belum ada modul LULUS-v2).
+3. Mulai Sub-modul 1.1 di **T2**: ajukan 2 pertanyaan berbasis `ai-context/knowledge/fase-1.md` (1.1), termasuk minimal 1 miskonsepsi dari bagian 5 di bawah. HARD STOP.
 
 ---
 
-## Status Artefak Portofolio (`docs/`)
+## 2. Mode Re-Verifikasi (Fase 1 v2)
 
-* `docs/post-mortems/pm-01-oom-killer-and-inode-exhaustion.md`:
-  * **Status**: **LENGKAP (PUBLISHED)** — Analisis OOM Killer cgroups v2 & Deleted Open Files.
-* `docs/runbooks/rb-01-linux-diagnostics-and-hardening.md`:
-  * **Status**: **LENGKAP (PUBLISHED)** — SOP Triage OOM-Kill & SSH Hardening Ed25519.
-* `docs/concepts/01-tcp-lifecycle-and-proxy-architecture.md`:
-  * **Status**: **LENGKAP (PUBLISHED)** — Catatan atomik Obsidian mengenai siklus hidup TCP, socket states (`TIME_WAIT` vs `CLOSE_WAIT`), dan arsitektur reverse proxy L4 vs L7.
+**Alasan:** Kelulusan v1 dinilai oleh agen yang bisa berhalusinasi. Audit `ai-context/audit-2026-11-12.md` menemukan beberapa kesalahan di dokumen v1. Operator memutuskan mengulang Fase 1 dengan standar baru.
 
----
-
-## Kamus Model Mental & Analogi Operator (Konteks Lintas Sesi)
-
-* **Linux Namespaces**: *"Kacamata kuda kernel"* — proses tetap berada di host yang sama, tetapi pandangannya dibatasi.
-* **cgroups v2**: *"Pagar pembatas / ransum fisik"* kuota CPU/RAM di tingkat kernel.
-* **Dentry vs Inode & File Descriptor**: *"Stiker label pintu"* vs *"koper di loker stasiun"*. `rm` hanya mencopot stiker (`unlink`). Kernel menolak membuang koper selama masih ada tangan proses yang memegang FD.
-* **Socket Jaringan**: *"Nomor tiket gagang telepon"* resmi dari kernel ke aplikasi untuk mengirim dan menerima paket.
-* **3-Way Handshake**: Batas minimal 3 langkah pembuktian jalur dua arah antara dua pihak di jaringan tidak andal.
-* **Paket RST**: Satpam kernel yang langsung menolak ketukan di pintu kamar port kosong dalam 0 ms (`Connection refused`).
-* **TIME_WAIT**: Bentuk kehati-hatian pihak pertama pamit menunggu 60 detik agar paket nyasar (dibatasi TTL IP) mati sebelum port dipakai lagi.
-* **CLOSE_WAIT**: Bug aplikasi lupa memanggil `close()` pada socket FD penerima; kernel menolak menutup paksa tanpa instruksi aplikasi sehingga memicu socket/FD leak.
-* **Inbound vs Outbound Resource**: Aplikasi inbound hanya makan FD; Gateway/Reverse proxy outbound makan FD + Port Sementara (Ephemeral Port).
-* **Nginx Keepalive**: Garasi 32 mobil standby untuk dipakai bergilir melayani request paralel tanpa 3-way handshake berulang.
+**Aturan mode ini:**
+1. Setiap sub-modul **dimulai di T2** (uji konsep langsung, karena operator sudah pernah belajar materinya).
+2. Jika LULUS R1–R3 → lanjut T3 dengan **chaos baru** yang belum pernah dilakukan (lihat "Ide Chaos" di pack).
+3. Jika BELUM → kembali ke T1 normal untuk konsep yang salah saja.
+4. Semua butir audit A1–A9 harus dibuktikan/dibantah lewat lab sebelum Gate Fase 1.
+5. PM-01 dan RB-01 ditulis ulang (v2) dengan templat baru dan suara operator.
 
 ---
 
-## Kendala Teknis & Catatan Sesi Terakhir (Active Blockers)
+## 3. Fakta Lingkungan (Terverifikasi)
 
-* Sub-Modul 2.1 resmi **TUNTAS 100%**.
-* Kode legacy terkait gateway tersimpan di `archive/v1/core-infrastructure/gateway-stb/`.
+> Agen: gunakan HANYA fakta ini. Jika butuh fakta lain, minta operator menjalankan perintah deteksi lalu tambahkan di sini.
+
+### Inner Loop — Workstation (dideteksi agen 2026-11-12)
+| Item | Nilai | Perintah deteksi |
+| :--- | :--- | :--- |
+| OS | CachyOS Linux (Arch-based), **native, bukan WSL2** | `cat /etc/os-release` |
+| Kernel | 7.3.3-1-cachyos | `uname -r` |
+| Shell | **fish 4.9.3** (bukan bash) | `echo $SHELL; fish --version` |
+| Filesystem `/` | ext4 | `findmnt -no FSTYPE /` |
+| Filesystem `/tmp` | **tmpfs** (pakai RAM) | `findmnt -no FSTYPE /tmp` |
+| cgroup | v2 (`cgroup2fs`); controller user: `cpuset cpu io memory pids` | `stat -fc %T /sys/fs/cgroup` |
+| Swap | zram 15.5G (zstd), `vm.swappiness=150` | `swapon --show; cat /proc/sys/vm/swappiness` |
+| systemd | 262 | `systemctl --version` |
+| Python | 3.12.16 | `python3 --version` |
+| Firewall | `iptables v1.8.13 (nf_tables)`, `nftables 1.1.7`, `ufw 0.36.2` (enabled) | `iptables -V; nft --version; systemctl is-enabled ufw` |
+| Docker | Engine 29.9.3 (enabled) | `docker version` |
+| Port sementara | 32768–60999 | `cat /proc/sys/net/ipv4/ip_local_port_range` |
+
+### Outer Loop — Proxmox (BELUM dideteksi)
+Jalankan via SSH lalu isi: `pveversion; uname -r; free -h; pct list; stat -fc %T /sys/fs/cgroup`
+
+### Outer Loop — STB (BELUM dideteksi)
+Jalankan via SSH lalu isi: `cat /etc/os-release; uname -rm; free -h; nginx -v; cloudflared --version; docker version; sudo sshd -T | grep -Ei 'passwordauth|permitroot'; ls /etc/ssh/sshd_config.d/`
 
 ---
 
-## Instruksi Eksplisit untuk Sesi Berikutnya
+## 4. Kompetensi
 
-1. **Patuhi Aturan Turn-Gate (`AGENTS.md`)**: Satu tahap per giliran.
-2. **Masuk ke Sub-Modul 2.2: Linux Netfilter, Firewalling (UFW/iptables), & Gateway Rebuild**:
-   * **Tahap 2 (Elaborasi Teori Mikro)**:
-     - Jelaskan rantai Netfilter di Linux kernel (`PREROUTING`, `INPUT`, `FORWARD`, `OUTPUT`, `POSTROUTING`).
-     - Jelaskan **Jebakan Docker vs UFW**: Mengapa perintah `docker run -p 80:80` mem-bypass aturan UFW karena Docker memanipulasi rantai `iptables` secara langsung.
-     - Ajukan 1-2 pertanyaan konseptual sokratik dan **BERHENTI (HARD STOP)** menunggu jawaban operator sebelum masuk ke praktik.
+### Status v2 (standar baru, rubrik `ai-context/03-asesmen.md`)
+| Sub-modul | Status | Petunjuk tertinggi | Terakhir diulang | Bukti |
+| :--- | :--- | :--- | :--- | :--- |
+| 1.1 Namespaces, cgroups, sinyal, OOM | ⏳ Belum | — | — | — |
+| 1.2 FD, inode, disk penuh | ⏳ Belum | — | — | — |
+| 1.3 systemd & SSH | ⏳ Belum | — | — | — |
+| 2.1 Packet flow, TCP, DNS | ⏳ Belum (v1: lulus) | — | — | — |
+| 2.2 Netfilter, UFW, Docker | ⏳ Belum | — | — | — |
+| 2.3 Chaos 502/504 | ⏳ Belum | — | — | — |
+| 2.4 TLS dasar | ⏳ Belum | — | — | — |
+
+### Arsip klaim v1 (BELUM diverifikasi ulang — jangan dianggap dikuasai)
+* 1.1.1 Isolasi namespaces · 1.1.2 cgroups v2 · 1.1.3 Sinyal & OOM (exit 137, `memory.events`)
+* 1.2 FD, inode, deleted open files, `lsof +L1`, offset & `O_APPEND`
+* 1.3 systemd unit, cgroups via systemd, ZRAM vs OOM, SSH Ed25519
+* 2.1 Socket = FD, 3-way handshake, RST, `TIME_WAIT` vs `CLOSE_WAIT`, ephemeral port, cloudflared outbound, nginx keepalive
+
+---
+
+## 5. Log Miskonsepsi Operator
+
+> Agen: catat kalimat **persis** operator yang keliru + koreksinya. Gunakan untuk pertanyaan T0/T2.
+
+| Tanggal | Modul | Kalimat operator | Koreksi | Sumber | Sudah diperbaiki? |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 2026-11-06 | 1.1 | "137 menandakan exit code kehabisan memori" | 137 = SIGKILL dari mana pun; OOM dibuktikan `oom_kill` | pack 1.1-F13 | ☐ |
+| 2026-11-10 | 1.2 | "truncate itu tidak efektif karena bisa mengubah offset di Open File Table" | Truncate tidak mengubah offset; offset yang tetap itulah masalahnya | pack 1.2-F8 | ☐ |
+| v1 | 1.3 | "bytearray lolos OOM karena zstd mengompres nol" | Dugaan: penentunya swap diizinkan/tidak. Belum dibuktikan | pack 1.1 Chaos 2 | ☐ |
+| v1 | 2.1 | "paket nyasar dibatasi TTL ~60 detik" | TTL = hop, bukan detik | pack 2.1 | ☐ |
+
+---
+
+## 6. Kamus Analogi Operator
+
+> Milik operator. Agen boleh menambahkan **batas analogi**, tidak boleh mengganti analoginya.
+
+| Konsep | Analogi operator | Batas analogi (di mana analogi ini tidak akurat) |
+| :--- | :--- | :--- |
+| Namespaces | Kacamata kuda kernel | Bukan hanya "pandangan": `net` namespace punya tumpukan jaringan sendiri sungguhan |
+| cgroups v2 | Pagar pembatas / ransum fisik | — |
+| Dentry vs Inode & FD | Stiker label pintu vs koper di loker stasiun | — |
+| Socket | Nomor tiket gagang telepon dari kernel | — |
+| Paket RST | Satpam kernel menolak ketukan di kamar kosong | — |
+| TIME_WAIT | Menunggu paket nyasar mati sebelum port dipakai lagi | Paket "mati" karena batas hop (TTL), bukan stopwatch |
+| CLOSE_WAIT | Aplikasi lupa `close()` | — |
+| Nginx keepalive | Garasi 32 mobil standby | Garasi per worker; hanya mobil yang sedang menganggur |
+
+---
+
+## 7. Gate Fase (Checklist)
+
+### Gate Fase 1
+- [ ] 1.1, 1.2, 1.3 LULUS v2
+- [ ] Butir audit A1–A9 dibuktikan/dibantah di lab
+- [ ] `docs/concepts/` : namespaces, cgroups-v2, sinyal-os, file-descriptor (4 catatan, suara operator)
+- [ ] `docs/post-mortems/pm-01-...` v2 (templat baru)
+- [ ] `docs/runbooks/rb-01-...` v2 (templat baru, ada backup & `sshd -T`)
+- [ ] Blind Drill Fase 1 lulus
+- [ ] Kalimat bertanda `[INGATAN]` di dokumen Fase 1 sudah dibuktikan / dicek silang
+
+### Gate Fase 2
+- [ ] 2.1–2.4 LULUS v2
+- [ ] `docs/concepts/01-tcp-...` direvisi (audit A10, A11)
+- [ ] ADR `docs/decisions/0002-host-firewall-strategy-docker-vs-ufw.md`
+- [ ] Runbook `docs/runbooks/rb-02-host-firewall-and-gateway-operations.md`
+- [ ] Blind Drill Fase 2 lulus
+
+---
+
+## 8. Status Artefak `docs/`
+
+| Berkas | Status |
+| :--- | :--- |
+| `docs/decisions/0001-hybrid-hardware-architecture.md` | ⚠️ PERLU REVISI — belum ikut templat MADR, setengah bahasa Inggris. Isi bagian konteks sudah suara operator (bagus). |
+| `docs/post-mortems/pm-01-oom-killer-and-inode-exhaustion.md` | ⚠️ PERLU REVISI — lihat audit A1–A7. Akan diganti v2. |
+| `docs/runbooks/rb-01-linux-diagnostics-and-hardening.md` | ⚠️ PERLU REVISI — lihat audit A7–A9. Akan diganti v2. |
+| `docs/concepts/01-tcp-lifecycle-and-proxy-architecture.md` | ⚠️ PERLU REVISI — lihat audit A10–A11. |
+
+---
+
+## 9. Riwayat Sesi
+
+| Tanggal | Fase/Sub | Tahap dicapai | Catatan |
+| :--- | :--- | :--- | :--- |
+| 2026-11-12 | — | — | Sistem belajar dirombak ke v2 (anti-halusinasi, rubrik, knowledge pack). Fase 1 diulang dalam mode re-verifikasi. |

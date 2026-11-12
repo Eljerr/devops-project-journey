@@ -2,42 +2,61 @@
 incident-id: PM-XXXX
 date: YYYY-MM-DD
 module-phase: "Fase X.Y"
-environment: "{Inner Loop WSL2 | Outer Loop Proxmox 8GB | Outer Loop STB ARM64}"
+environment: "{INNER CachyOS | OUTER Proxmox | OUTER STB}"
+author: Asylon
 severity: "{Critical | High | Medium}"
-status: "Resolved"
+status: "{Investigating | Resolved}"
+verification: "{Semua klaim LAB/DOK | Masih ada klaim INGATAN}"
+evidence: ["docs/labs/{lab-id}.md"]
 tags: [post-mortem, troubleshooting, fase-x]
 ---
 
-# Post-Mortem: {Judul Kegagalan Sistem / Studi Kasus}
+# Post-Mortem: {Judul Kegagalan}
 
-## 1. Ringkasan Eksekutif & Dampak Sistem
-<!-- OPERATOR VOICE: Ceritakan dengan bahasamu sendiri layanan apa yang mati, dampaknya, dan konteks eksperimen/insidennya -->
-{Deskripsi singkat mengenai layanan yang terganggu, gejala yang terlihat oleh pengguna/sistem, dan durasi gangguan pada lingkungan homelab.}
+## 1. Ringkasan & Dampak
+<!-- OPERATOR VOICE: ceritakan dengan bahasamu sendiri -->
+{Layanan apa yang terganggu, gejalanya, durasinya.}
 
-## 2. Gejala Awal & Bukti Log (Detection)
-<!-- RAW ARTIFACT: Tempelkan output terminal/log asli tanpa diedit isinya -->
+## 2. Timeline
+| Waktu | Kejadian |
+| :--- | :--- |
+| HH:MM | Kerusakan disuntikkan / gejala pertama |
+| HH:MM | Hipotesis pertama diuji |
+| HH:MM | Akar masalah ditemukan |
+| HH:MM | Pulih & terverifikasi |
+
+## 3. Gejala Awal & Bukti Log
+<!-- RAW ARTIFACT: tempel output asli tanpa diedit -->
 ```text
-{Tempelkan potongan log error asli dari journalctl, kubectl logs, dmesg, lsof, atau GitHub Actions yang menjadi petunjuk awal.}
+{Log asli}
 ```
 
-## 3. Kronologi Investigasi & Diagnostik (Troubleshooting Flow)
-<!-- OPERATOR VOICE: Tuliskan alur pikir saat menginvestigasi masalah, termasuk tebakan awal yang salah jika ada -->
-1. **Hipotesis Awal**: {Apa yang pertama kali dicurigai dan perintah CLI apa yang dijalankan untuk mengujinya}.
-2. **Temuan Menengah**: {Hasil keluaran perintah yang menggugurkan atau memperkuat hipotesis}.
-3. **Identifikasi Titik Kegagalan**: {Perintah spesifik yang mengungkap sumber masalah sebenarnya}.
+## 4. Kronologi Investigasi
+<!-- OPERATOR VOICE: termasuk tebakan yang salah -->
+1. **Hipotesis awal**: {…} → perintah uji: `{…}` → hasil: {…}
+2. **Temuan menengah**: {…}
+3. **Titik kegagalan**: {…}
 
-## 4. Analisis Akar Masalah (Root Cause Analysis — First Principles & 5 Whys)
-<!-- OPERATOR VOICE: Bedah sampai ke mekanisme internal kernel/jaringan/kontainer -->
-* **Gejala Permukaan**: {Masalah yang terlihat}
-  * **Why 1**: Mengapa itu terjadi? -> {Jawaban}
-  * **Why 2**: Mengapa hal di atas terjadi? -> {Jawaban}
-  * **Why 3**: Mengapa sistem merespons demikian? -> {Jawaban}
-  * **Why 4 / Mekanisme Internal Kernel/OS**: -> {Penjelasan tingkat lanjut, misal cara kerja inode, cgroup, atau netfilter}
+## 5. Akar Masalah (5 Whys)
+<!-- OPERATOR VOICE. Setiap "Why" yang menyebut mekanisme kernel diberi label [LAB ✓]/[DOK]/[INGATAN] -->
+* **Gejala**: {…}
+  * **Why 1**: {…}
+  * **Why 2**: {…}
+  * **Why 3**: {…}
+  * **Mekanisme internal**: {…} [label]
 
-## 5. Resolusi, Bukti Pemulihan, & Mitigasi Permanen
-* **Perbaikan Langsung (Fix)**: {Perubahan konfigurasi atau perintah CLI yang memulihkan layanan}.
-* **Bukti Verifikasi (Post-Fix Output)**:
+## 6. Resolusi & Bukti Pemulihan
+* **Perbaikan**: {…}
+* **Bukti**:
   ```text
-  {Tempelkan output terminal/metrik yang membuktikan masalah sudah tuntas}
+  {Output setelah perbaikan}
   ```
-* **Pencegahan & Refleksi Operator (Lessons Learned)**: {Aturan alerting, health check, atau validasi yang ditambahkan + catatan kritis pribadimu agar insiden tidak terulang}.
+
+## 7. Action Items
+| # | Tindakan | Jenis (cegah/deteksi/mitigasi) | Status |
+| :--- | :--- | :--- | :--- |
+| 1 | {…} | {…} | ☐ |
+
+## 8. Refleksi Operator
+<!-- OPERATOR VOICE: apa yang kamu pelajari, apa yang akan kamu lakukan berbeda -->
+{…}

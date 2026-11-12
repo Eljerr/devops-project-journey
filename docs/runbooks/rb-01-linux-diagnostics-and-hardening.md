@@ -9,6 +9,9 @@ reviewed-by: "AI Systems Architect Agent"
 tags: [runbook, systemd, cgroups-v2, oom-kill, ssh-hardening, troubleshooting]
 ---
 
+> [!WARNING]
+> **PERLU REVISI (audit 2026-11-12)** — dokumen v1 ini mengandung dugaan kesalahan. Lihat `ai-context/audit-2026-11-12.md` butir A7–A9. Jangan dijadikan rujukan sampai versi v2 terbit.
+
 # Runbook: Diagnostik Layanan systemd, Penanganan OOM-Kill, dan Penguatan Akses SSH
 
 ## 1. Tujuan & Cakupan Operasional
