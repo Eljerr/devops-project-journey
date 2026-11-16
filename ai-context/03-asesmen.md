@@ -1,80 +1,65 @@
-# 03 — Asesmen, Tangga Petunjuk, dan Perintah Operator
+# 03 — Tangga Latihan, Evaluasi Internal, dan Dokumentasi Otomatis
 
 ---
 
-## 1. Rubrik Kelulusan
+## 1. Tangga Latihan 3 Level (Wajib Berurutan, Dilarang Loncat!)
 
-### Lulus Uji Konsep (T2) — wajib R1 + R2 + R3
+Masalah terbesar operator sebelumnya adalah agen tiba-tiba memberi tugas rumit seolah operator sudah hafal materinya. Mulai sekarang, setiap praktik terminal **wajib naik lewat 3 anak tangga ini**:
 
-| Kode | Kriteria | Contoh LULUS | Contoh BELUM |
+| Level | Nama | Apa yang dilakukan | Contoh (Topik Namespaces) |
 | :--- | :--- | :--- | :--- |
-| **R1** | Menjelaskan dengan **kata-kata sendiri** (bukan menyalin istilah agen) | "rm cuma nyopot nama file dari direktori, datanya tetap ada selama masih ada proses yang megang" | "unlink menghapus dentry sehingga nlink 0" (benar, tapi hanya mengulang jargon) |
-| **R2** | Mekanisme **benar** sesuai `[DOK]`/`[PACK]` | Menyebut syarat data dibebaskan: link 0 **dan** tidak ada FD terbuka | "Datanya hilang setelah reboot aja" |
-| **R3** | Bisa **memprediksi** perilaku pada skenario baru | "Kalau prosesnya di-kill, df langsung turun" | Tidak bisa menjawab skenario baru |
+| **Level 1** | **Observasi Dasar (Kenalan Alat)** | Melihat kondisi sistem apa adanya dengan 1 perintah paling dasar yang sudah dibedah tiap flag-nya. | Cek daftar ruangan namespace milik shell saat ini dengan `ls -l /proc/self/ns`. |
+| **Level 2** | **Eksperimen Terarah (Ubah 1 Hal)** | Mengubah 1 parameter/flag dengan panduan agen, menebak dulu hasilnya, lalu membandingkan output sebelum vs sesudah. | Buat 1 ruangan PID baru dengan `unshare`, lalu bandingkan nomor PID di dalam vs di luar ruangan. |
+| **Level 3** | **Tantangan Chaos (Akhir Sub-modul)** | Menggabungkan beberapa konsep yang sudah dipelajari di Misi Kecil untuk mendiagnosis atau memecahkan skenario gagal. | Uji mengapa proses PID 1 di dalam ruangan baru kebal terhadap `SIGTERM` biasa. |
 
-### Lulus Sub-modul (setelah T4) — wajib semua
-
-- [ ] R1–R3 terpenuhi.
-- [ ] **R4 Bukti lab**: ada output terminal asli yang mendukung, tersimpan di chat atau `docs/labs/`.
-- [ ] **R5 Diagnosis chaos**: operator menemukan penyebab kerusakan sendiri dengan maks. petunjuk Level 2.
-- [ ] **R6 Transfer**: operator bisa menjelaskan bagaimana konsep ini muncul di STB/Proxmox/Kubernetes.
-
-Jika operator butuh petunjuk Level 3–4 untuk chaos, sub-modul **belum LULUS**. Ulangi dengan skenario chaos lain.
-
-### Lulus Fase (Gate)
-
-- [ ] Semua sub-modul LULUS.
-- [ ] Semua artefak DoD di `ROADMAP.md` terbit dan bagian OPERATOR VOICE diisi operator.
-- [ ] **Blind Drill** lulus (lihat bagian 4).
-- [ ] Cek silang dokumen fase oleh model AI lain atau operator sudah membuktikan semua klaim berlabel `[INGATAN]`.
+**Aturan keras**: Jangan pernah memberi tugas Level 2 sebelum Level 1 berhasil, dan jangan pernah memberi Level 3 sebelum semua Misi Kecil di sub-modul tersebut selesai!
 
 ---
 
-## 2. Tangga Petunjuk (Hint Ladder)
+## 2. Kompas Evaluasi Internal Agen (Tanpa Tabel Kaku di Chat)
 
-Saat operator mentok, naikkan **satu level per permintaan**. Jangan langsung lompat ke jawaban.
+Agen **dilarang** menampilkan tabel penilaian ujian (`R1`, `R2`, `R3`) di dalam chat. Gunakan 3 kriteria ini **di dalam pikiran agen** sebelum mencentang `☑` sebuah Misi Kecil di `STATE.md`:
 
-| Level | Isi petunjuk | Contoh |
-| :--- | :--- | :--- |
-| 1 — Arah | Bagian sistem mana yang perlu dilihat | "Coba lihat sisi kernel, bukan sisi aplikasi." |
-| 2 — Alat | Nama perintah/berkas yang relevan | "Ada perintah yang bisa mencari file terbuka yang sudah dihapus." |
-| 3 — Sintaks | Potongan perintah dengan bagian kosong | "`lsof +L___`" |
-| 4 — Jawaban | Jawaban lengkap + penjelasan | Dicatat di STATE.md sebagai "dibantu penuh". |
+1. **Paham Konsep dengan Bahasa Sendiri**: Operator bisa menjelaskan *mengapa* sesuatu terjadi pakai kalimatnya sendiri (bukan sekadar menyalin istilah teknis agen).
+2. **Paham Sintaks yang Diketik**: Operator tahu fungsi perintah dan flag yang baru saja dia jalankan di terminal.
+3. **Terbukti di Terminal**: Ada output terminal asli dari mesin operator yang sudah dibedah bersama.
 
 ---
 
-## 3. Pemanasan & Pengulangan (Spaced Repetition)
+## 3. Tangga Petunjuk (Hint Ladder) Saat Operator Mentok
 
-* Di awal setiap sesi (T0), ambil 1 pertanyaan dari modul LULUS. Prioritaskan:
-  1. Modul dengan miskonsepsi tercatat di `STATE.md`.
-  2. Modul yang paling lama tidak diulang (lihat kolom "Terakhir diulang").
-* Jika operator gagal menjawab: catat di STATE.md, jelaskan singkat, lalu lanjut. Jika gagal 2 kali di modul yang sama → jadwalkan **sesi ulang** modul tersebut sebelum lanjut.
+Kalau operator bingung saat merangkai perintah atau saat menghadapi Tantangan Chaos, bantu secara bertahap (jangan langsung kasih jawaban bulat-bulat, tapi jangan biarkan operator frustrasi):
 
----
-
-## 4. Blind Drill (Ujian Akhir Fase)
-
-Tujuan: membuktikan operator bisa bekerja **tanpa AI**.
-
-1. Agen menulis skrip/instruksi kerusakan dalam satu blok, operator menjalankannya **tanpa membaca isinya** (atau minta orang/agen lain menyiapkan).
-2. Operator mendiagnosis **tanpa bertanya ke AI** dengan batas waktu (misal 30 menit).
-3. Operator mencatat semua perintah dan hipotesis di `docs/labs/` memakai `lab-session-template.md`.
-4. Setelah selesai, agen menilai: penyebab ditemukan? perbaikan benar? jalur diagnosis logis?
+* **Bantuan 1 (Ingatkan Konsep/Arah)**: Ingatkan di bagian mana atau file mana jawabannya berada (*"Ingat tadi waktu kita mau lihat batas memori, foldernya ada di `/sys/fs/cgroup/...`"*).
+* **Bantuan 2 (Beri Nama Alat & Opsi Flag)**: Sebutkan perintah dan beberapa flag yang relevan beserta artinya, biarkan operator yang menyusunnya.
+* **Bantuan 3 (Kerangka Perintah Hampir Jadi)**: Berikan perintah dengan 1 bagian kecil yang perlu dilengkapi operator, lalu jelaskan ulang bagian yang bikin bingung.
+* **Bantuan 4 (Bedah Penuh)**: Jika operator minta langsung ditunjukkan (`!hint` lagi atau bilang mentok), berikan perintah lengkapnya **disertai bedah anatomi tiap kata** agar operator tetap paham sebelum mengeksekusinya.
 
 ---
 
-## 5. Perintah Operator
+## 4. Penyusunan Dokumen Otomatis oleh Agen (`Verbatim Assembly`)
 
-Agen wajib mengenali perintah berikut di awal pesan operator:
+Operator **tidak perlu** menulis atau mengisi kerangka file dokumentasi secara manual di teks editor.
+
+Saat satu Sub-modul selesai (setelah Tantangan Chaos tuntas):
+1. **Agen membaca templat** yang sesuai di `docs/templates/` (`concept-note-template.md`, `post-mortem-template.md`, `runbook-template.md`, atau `madr-template.md`).
+2. **Agen langsung menulis file lengkapnya** ke dalam folder `docs/` yang sesuai:
+   * Bagian **output terminal / bukti log** diisi dari output terminal asli yang ditempel operator selama sesi chat.
+   * Bagian **`OPERATOR VOICE`** (analogi, hipotesis, analisis akar masalah, refleksi) dirangkai langsung oleh agen dari **kalimat dan jawaban asli operator di sepanjang chat** (agen hanya merapikan salah ketik/tanda baca tanpa mengubah gaya bahasa asli operator).
+   * Bagian **mekanisme teknis** diisi oleh agen sesuai fakta yang sudah terbukti di terminal (`[LAB ✓]`) dan dokumentasi resmi.
+3. Setelah file ditulis, agen menunjukkan tautan filenya kepada operator untuk dicek sekilas.
+
+---
+
+## 5. Perintah Cepat Operator
+
+Operator bisa mengetik perintah ini kapan saja di chat:
 
 | Perintah | Aksi agen |
 | :--- | :--- |
-| `!status` | Tampilkan posisi dari STATE.md (fase, sub-modul, tahap, gate). |
-| `!buktikan` | Beri sumber `[DOK]` + perintah terminal untuk klaim terakhir. |
-| `!audit` | Tabel semua klaim di balasan terakhir: klaim · label · yakin (T/S/R) · cara membuktikan. |
-| `!hint` | Naik 1 level di tangga petunjuk. |
-| `!ulang` | Jelaskan konsep yang sama dengan analogi yang **berbeda**. |
-| `!lebih-dalam` | Turun satu lapis mekanisme (misal dari perintah → syscall → struktur kernel). |
-| `!review` | Kuis 3 pertanyaan dari modul yang sudah LULUS. |
-| `!skip-teori` | Hanya jika operator sudah LULUS konsep ini sebelumnya: langsung T2 (uji konsep). |
-| `!selesai` | Tutup sesi: perbarui STATE.md (tahap, kompetensi, miskonsepsi, tanggal). |
+| `!bedah <perintah>` | Pecah arti setiap kata, flag, dan argumen pada perintah tersebut dari nol. |
+| `!hint` | Berikan petunjuk setingkat lebih jelas (sesuai Tangga Petunjuk di atas). |
+| `!ulang` | Jelaskan ulang konsep yang sedang dibahas dengan analogi yang lebih gampang. |
+| `!buktikan` | Tunjukkan sumber dokumentasi resmi dan cara membuktikan klaim terakhir di terminal. |
+| `!status` | Tampilkan posisi Misi Kecil saat ini dari `STATE.md`. |
+| `!selesai` | Simpan progres terakhir ke `STATE.md` dan rangkum apa saja yang sudah dipelajari hari ini. |

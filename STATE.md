@@ -1,7 +1,7 @@
-# STATE.md — Memori Status Pembelajaran
+# STATE.md — Memori Status Pembelajaran & Kompas Misi Kecil
 
-> Agen: baca berkas ini PERTAMA. Bagian "Posisi Saat Ini" menentukan apa yang kamu lakukan.
-> Update berkas ini di akhir sesi atau saat operator mengetik `!selesai`.
+> Agen: baca berkas ini PERTAMA. Bagian "1. Posisi Saat Ini" dan "2. Peta Misi Kecil" adalah kompas utamamu.
+> Update berkas ini setiap kali satu Misi Kecil selesai (`☑`) atau saat operator mengetik `!selesai`.
 
 ---
 
@@ -9,29 +9,58 @@
 
 | Kunci | Nilai |
 | :--- | :--- |
-| **Fase aktif** | Fase 1 v2 — Re-verifikasi Fondasi Kernel Linux |
-| **Sub-modul aktif** | 1.1 Namespaces, cgroups v2, Sinyal, OOM Killer |
-| **Tahap aktif** | T2 (mode re-verifikasi — lihat bagian 2) |
-| **Mode** | `RE-VERIFIKASI` |
-| **Pembaruan terakhir** | 2026-11-12 |
+| **Fase aktif** | Fase 1 — Fondasi Kernel Linux, Proses, Filesystem, & systemd |
+| **Sub-modul aktif** | 1.1 Namespaces, cgroups v2, Sinyal OS, & OOM Killer |
+| **Misi Kecil aktif** | **Misi 1.1a: Kenalan sama Proses (`/proc`) & Linux Namespaces** |
+| **Langkah aktif** | **Langkah 1/3 — Konsep Dasar & Bedah Alat (Mulai dari Nol)** |
+| **Mode Belajar** | `MULAI DARI NOL (Nol-Asumsi · Bedah Sintaks · Misi Kecil)` |
+| **Pembaruan terakhir** | 2026-11-16 |
 
-### Instruksi untuk sesi berikutnya (agen)
-1. Ikuti `AGENTS.md` bagian 0 (urutan membaca).
-2. Lewati T0 di sesi pertama ini (belum ada modul LULUS-v2).
-3. Mulai Sub-modul 1.1 di **T2**: ajukan 2 pertanyaan berbasis `ai-context/knowledge/fase-1.md` (1.1), termasuk minimal 1 miskonsepsi dari bagian 5 di bawah. HARD STOP.
+### Instruksi Spesifik untuk Agen di Sesi Berikutnya
+1. **Patuhi `AGENTS.md` (v3)**: Ngobrol santai seperti mentor manusia, **1 baris Kompas Posisi di atas**, dan **1 baris `📚 Referensi` di paling bawah** (jangan taruh tag `[DOK]`/`[PACK]` di tengah kalimat, dan jangan tampilkan tabel rubrik R1–R3).
+2. **Nol-Asumsi**: Anggap operator benar-benar mulai dari nol. Jangan mengasumsikan operator sudah tahu apa itu `/proc`, `PID`, `symlink`, atau `unshare`.
+3. **Mulai di Misi 1.1a — Langkah 1/3**:
+   * Jelaskan konsep dasar: apa itu proses di Linux, di mana kernel menyimpan "KTP" setiap proses (`/proc`), dan bagaimana konsep **Namespaces** ("kacamata kuda / sekat ruangan") bekerja.
+   * **Bedah anatomi perintah Level 1** kata demi kata: cara mengintip daftar namespace proses shell saat ini (`ls -l /proc/self/ns` — jelaskan arti `ls`, flag `-l`, apa itu `/proc/self`, dan apa itu folder `ns`).
+   * Ajak operator menjalankan perintah pengamatan dasar tersebut di terminal dan menempelkan hasilnya. **Berhenti & tunggu respons operator.**
 
 ---
 
-## 2. Mode Re-Verifikasi (Fase 1 v2)
+## 2. Peta Misi Kecil Fase 1 (Kompas Anti-Nyasar Agen)
 
-**Alasan:** Kelulusan v1 dinilai oleh agen yang bisa berhalusinasi. Audit `ai-context/audit-2026-11-12.md` menemukan beberapa kesalahan di dokumen v1. Operator memutuskan mengulang Fase 1 dengan standar baru.
+> Agen wajib menjalankan misi kecil di bawah ini **satu per satu secara berurutan**.
+> Setiap misi melewati: **Langkah 1 (Konsep & Bedah Alat)** → **Langkah 2 (Coba Level 1 & Level 2 di Terminal + Bedah Output)** → **Langkah 3 (Klik & Centang `☑`)**.
 
-**Aturan mode ini:**
-1. Setiap sub-modul **dimulai di T2** (uji konsep langsung, karena operator sudah pernah belajar materinya).
-2. Jika LULUS R1–R3 → lanjut T3 dengan **chaos baru** yang belum pernah dilakukan (lihat "Ide Chaos" di pack).
-3. Jika BELUM → kembali ke T1 normal untuk konsep yang salah saja.
-4. Semua butir audit A1–A9 harus dibuktikan/dibantah lewat lab sebelum Gate Fase 1.
-5. PM-01 dan RB-01 ditulis ulang (v2) dengan templat baru dan suara operator.
+### Sub-modul 1.1: Namespaces, cgroups v2, Sinyal, & OOM Killer
+- [ ] **Misi 1.1a — Proses (`/proc`) & Linux Namespaces**:
+  * *Level 1 (Observasi)*: Mengintip `/proc/self/ns` dengan `ls -l` & membaca nomor inode ruangan dengan `readlink`.
+  * *Level 2 (Eksperimen)*: Membuat ruangan PID baru dengan `unshare` (bedah flag `--pid`, `--fork`, `--mount-proc`) dan membandingkan `ps` di dalam vs di luar ruangan.
+- [ ] **Misi 1.1b — Pagar Resource cgroups v2 (`/sys/fs/cgroup`)**:
+  * *Level 1 (Observasi)*: Mengecek tipe filesystem cgroup v2 (`stat -fc %T /sys/fs/cgroup`) dan melihat isi folder cgroup milik user saat ini (`memory.current`, `memory.max`, `cpu.max`).
+  * *Level 2 (Eksperimen)*: Menjalankan proses di dalam pagar memori sementara dengan `systemd-run --user --scope` (bedah tiap flag-nya!).
+- [ ] **Misi 1.1c — Sinyal OS (`SIGTERM` vs `SIGKILL`) & Kutukan PID 1**:
+  * *Level 1 (Observasi)*: Melihat daftar sinyal (`kill -l`) dan cara baca kode keluar di shell **fish** (`$status`, aturan `128 + N`).
+  * *Level 2 (Eksperimen)*: Mengirim sinyal sopan `SIGTERM` (15) vs paksa `SIGKILL` (9), lalu menguji mengapa PID 1 di dalam namespace `unshare` mengabaikan `SIGTERM`.
+- [ ] **Misi 1.1d — OOM Killer, `memory.events`, & Peran Swap/ZRAM**:
+  * *Level 1 (Observasi)*: Melihat konfigurasi swap ZRAM di CachyOS (`swapon --show`) dan membaca counter `memory.events`.
+  * *Level 2 (Eksperimen)*: Memicu OOM Killer dengan sengaja (`MemoryMax=50M` + `MemorySwapMax=0`) dan membedakan bukti `137` biasa vs bukti asli `oom_kill`.
+- [ ] **🎯 Tantangan Chaos 1.1 & Penyusunan Otomatis Dokumen**:
+  * *Chaos (Level 3)*: Eksperimen terukur membandingkan pengaruh `MemorySwapMax` vs jenis data (`bytearray` nol vs `os.urandom` acak) satu variabel per langkah.
+  * *Dokumentasi Otomatis*: Agen menyusun Catatan Konsep (`docs/concepts/`) & Bagian 1 Post-Mortem (`pm-01`) dari obrolan chat.
+
+### Sub-modul 1.2: File Descriptor, Inode, & Misteri Disk Penuh
+- [ ] **Misi 1.2a — File Descriptor (`/proc/<PID>/fd`) & Offset (`fdinfo`)**
+- [ ] **Misi 1.2b — Nama File (Dentry) vs Koper Data (Inode) & `unlink()`**
+- [ ] **Misi 1.2c — Anomali `df` vs `du` (Deleted Open Files) & `lsof +L1`**
+- [ ] **Misi 1.2d — Inode Exhaustion (`df -i`) vs Disk Block Penuh (`df -h`)**
+- [ ] **🎯 Tantangan Chaos 1.2 & Penyusunan Otomatis Dokumen (`pm-01` Bagian 2)**
+
+### Sub-modul 1.3: Manajemen Layanan `systemd` & Penguatan SSH
+- [ ] **Misi 1.3a — Anatomi Unit File `systemd` & Siklus Hidup Service**
+- [ ] **Misi 1.3b — Integrasi `systemd` ke cgroups v2 (`MemoryMax`, `CPUQuota`) & `journalctl`**
+- [ ] **Misi 1.3c — Kunci Kriptografi SSH Ed25519 & Izin File (`chmod 700/600/644`)**
+- [ ] **Misi 1.3d — Penguatan `sshd_config`, JebakanUrutan Drop-in, & `sshd -T`**
+- [ ] **🎯 Tantangan Chaos 1.3 & Penyusunan Otomatis Runbook (`rb-01`)**
 
 ---
 
@@ -44,9 +73,9 @@
 | :--- | :--- | :--- |
 | OS | CachyOS Linux (Arch-based), **native, bukan WSL2** | `cat /etc/os-release` |
 | Kernel | 7.3.3-1-cachyos | `uname -r` |
-| Shell | **fish 4.9.3** (bukan bash) | `echo $SHELL; fish --version` |
+| Shell | **fish 4.9.3** (bukan bash — kode keluar pakai `$status`, bukan `$?`) | `echo $SHELL; fish --version` |
 | Filesystem `/` | ext4 | `findmnt -no FSTYPE /` |
-| Filesystem `/tmp` | **tmpfs** (pakai RAM) | `findmnt -no FSTYPE /tmp` |
+| Filesystem `/tmp` | **tmpfs** (pakai RAM, jangan dipakai untuk lab disk penuh ext4) | `findmnt -no FSTYPE /tmp` |
 | cgroup | v2 (`cgroup2fs`); controller user: `cpuset cpu io memory pids` | `stat -fc %T /sys/fs/cgroup` |
 | Swap | zram 15.5G (zstd), `vm.swappiness=150` | `swapon --show; cat /proc/sys/vm/swappiness` |
 | systemd | 262 | `systemctl --version` |
@@ -55,98 +84,49 @@
 | Docker | Engine 29.9.3 (enabled) | `docker version` |
 | Port sementara | 32768–60999 | `cat /proc/sys/net/ipv4/ip_local_port_range` |
 
-### Outer Loop — Proxmox (BELUM dideteksi)
-Jalankan via SSH lalu isi: `pveversion; uname -r; free -h; pct list; stat -fc %T /sys/fs/cgroup`
-
-### Outer Loop — STB (BELUM dideteksi)
-Jalankan via SSH lalu isi: `cat /etc/os-release; uname -rm; free -h; nginx -v; cloudflared --version; docker version; sudo sshd -T | grep -Ei 'passwordauth|permitroot'; ls /etc/ssh/sshd_config.d/`
+### Outer Loop — Proxmox & STB (Belum dideteksi ulang)
+Akan dideteksi bersama saat masuk Misi 1.3c/1.3d (SSH) dan Fase 2.
 
 ---
 
-## 4. Kompetensi
+## 4. Poin Audit Lama yang Akan Dibuktikan Sambil Jalan
 
-### Status v2 (standar baru, rubrik `ai-context/03-asesmen.md`)
-| Sub-modul | Status | Petunjuk tertinggi | Terakhir diulang | Bukti |
-| :--- | :--- | :--- | :--- | :--- |
-| 1.1 Namespaces, cgroups, sinyal, OOM | ⏳ Belum | — | — | — |
-| 1.2 FD, inode, disk penuh | ⏳ Belum | — | — | — |
-| 1.3 systemd & SSH | ⏳ Belum | — | — | — |
-| 2.1 Packet flow, TCP, DNS | ⏳ Belum (v1: lulus) | — | — | — |
-| 2.2 Netfilter, UFW, Docker | ⏳ Belum | — | — | — |
-| 2.3 Chaos 502/504 | ⏳ Belum | — | — | — |
-| 2.4 TLS dasar | ⏳ Belum | — | — | — |
+> Agen: jangan dijadikan beban ujian di depan. Buktikan secara alami saat masuk Misi Kecil yang bersangkutan.
 
-### Arsip klaim v1 (BELUM diverifikasi ulang — jangan dianggap dikuasai)
-* 1.1.1 Isolasi namespaces · 1.1.2 cgroups v2 · 1.1.3 Sinyal & OOM (exit 137, `memory.events`)
-* 1.2 FD, inode, deleted open files, `lsof +L1`, offset & `O_APPEND`
-* 1.3 systemd unit, cgroups via systemd, ZRAM vs OOM, SSH Ed25519
-* 2.1 Socket = FD, 3-way handshake, RST, `TIME_WAIT` vs `CLOSE_WAIT`, ephemeral port, cloudflared outbound, nginx keepalive
+| Kode | Topik terkait | Hal yang akan dibuktikan bareng di terminal | Status |
+| :--- | :--- | :--- | :--- |
+| A3 | Misi 1.1c & 1.1d | Kode keluar `137` berasal dari sinyal `SIGKILL` (9) dari mana pun; bukti spesifik OOM Killer ada di `oom_kill` pada `memory.events`. | ☐ |
+| A7 | Chaos 1.1 | Apakah `bytearray` lolos OOM karena kompresi zstd atau karena swap (`MemorySwapMax`) belum dikunci ke 0. | ☐ |
+| A5 & A6 | Misi 1.2c | Efek `truncate` terhadap posisi tulis (`pos` di `fdinfo`) dan perbedaan ukuran tampak vs blok disk pada *sparse file*. | ☐ |
+| A2 | Misi 1.2d | Perbedaan nyata antara *deleted open files* (`df -h` penuh) dan *inode exhaustion* (`df -i` penuh). | ☐ |
+| A8 & A9 | Misi 1.3d | Aturan "nilai pertama menang" pada `sshd_config` (verifikasi pakai `sudo sshd -T`) dan wajibnya langkah backup sebelum ubah konfigurasi. | ☐ |
 
 ---
 
-## 5. Log Miskonsepsi Operator
+## 5. Kamus Analogi Operator
 
-> Agen: catat kalimat **persis** operator yang keliru + koreksinya. Gunakan untuk pertanyaan T0/T2.
+> Analogi yang sudah akrab bagi operator. Agen boleh memakainya kembali sambil memperjelas batas analoginya.
 
-| Tanggal | Modul | Kalimat operator | Koreksi | Sumber | Sudah diperbaiki? |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| 2026-11-06 | 1.1 | "137 menandakan exit code kehabisan memori" | 137 = SIGKILL dari mana pun; OOM dibuktikan `oom_kill` | pack 1.1-F13 | ☐ |
-| 2026-11-10 | 1.2 | "truncate itu tidak efektif karena bisa mengubah offset di Open File Table" | Truncate tidak mengubah offset; offset yang tetap itulah masalahnya | pack 1.2-F8 | ☐ |
-| v1 | 1.3 | "bytearray lolos OOM karena zstd mengompres nol" | Dugaan: penentunya swap diizinkan/tidak. Belum dibuktikan | pack 1.1 Chaos 2 | ☐ |
-| v1 | 2.1 | "paket nyasar dibatasi TTL ~60 detik" | TTL = hop, bukan detik | pack 2.1 | ☐ |
+* **Linux Namespaces**: *"Kacamata kuda / sekat ruangan kernel"* — proses tetap jalan di mesin host yang sama, tapi pandangannya dibatasi hanya ke ruangannya sendiri.
+* **cgroups v2**: *"Pagar pembatas / jatah ransum fisik"* kuota CPU & RAM di tingkat kernel.
+* **Dentry vs Inode & File Descriptor**: *"Stiker nama di pintu"* vs *"koper data di loker"*. `rm` hanya mencopot stiker nama; koper belum dibuang selama masih ada tangan proses (FD) yang memegangnya.
 
 ---
 
-## 6. Kamus Analogi Operator
-
-> Milik operator. Agen boleh menambahkan **batas analogi**, tidak boleh mengganti analoginya.
-
-| Konsep | Analogi operator | Batas analogi (di mana analogi ini tidak akurat) |
-| :--- | :--- | :--- |
-| Namespaces | Kacamata kuda kernel | Bukan hanya "pandangan": `net` namespace punya tumpukan jaringan sendiri sungguhan |
-| cgroups v2 | Pagar pembatas / ransum fisik | — |
-| Dentry vs Inode & FD | Stiker label pintu vs koper di loker stasiun | — |
-| Socket | Nomor tiket gagang telepon dari kernel | — |
-| Paket RST | Satpam kernel menolak ketukan di kamar kosong | — |
-| TIME_WAIT | Menunggu paket nyasar mati sebelum port dipakai lagi | Paket "mati" karena batas hop (TTL), bukan stopwatch |
-| CLOSE_WAIT | Aplikasi lupa `close()` | — |
-| Nginx keepalive | Garasi 32 mobil standby | Garasi per worker; hanya mobil yang sedang menganggur |
-
----
-
-## 7. Gate Fase (Checklist)
-
-### Gate Fase 1
-- [ ] 1.1, 1.2, 1.3 LULUS v2
-- [ ] Butir audit A1–A9 dibuktikan/dibantah di lab
-- [ ] `docs/concepts/` : namespaces, cgroups-v2, sinyal-os, file-descriptor (4 catatan, suara operator)
-- [ ] `docs/post-mortems/pm-01-...` v2 (templat baru)
-- [ ] `docs/runbooks/rb-01-...` v2 (templat baru, ada backup & `sshd -T`)
-- [ ] Blind Drill Fase 1 lulus
-- [ ] Kalimat bertanda `[INGATAN]` di dokumen Fase 1 sudah dibuktikan / dicek silang
-
-### Gate Fase 2
-- [ ] 2.1–2.4 LULUS v2
-- [ ] `docs/concepts/01-tcp-...` direvisi (audit A10, A11)
-- [ ] ADR `docs/decisions/0002-host-firewall-strategy-docker-vs-ufw.md`
-- [ ] Runbook `docs/runbooks/rb-02-host-firewall-and-gateway-operations.md`
-- [ ] Blind Drill Fase 2 lulus
-
----
-
-## 8. Status Artefak `docs/`
+## 6. Status Artefak `docs/`
 
 | Berkas | Status |
 | :--- | :--- |
-| `docs/decisions/0001-hybrid-hardware-architecture.md` | ⚠️ PERLU REVISI — belum ikut templat MADR, setengah bahasa Inggris. Isi bagian konteks sudah suara operator (bagus). |
-| `docs/post-mortems/pm-01-oom-killer-and-inode-exhaustion.md` | ⚠️ PERLU REVISI — lihat audit A1–A7. Akan diganti v2. |
-| `docs/runbooks/rb-01-linux-diagnostics-and-hardening.md` | ⚠️ PERLU REVISI — lihat audit A7–A9. Akan diganti v2. |
-| `docs/concepts/01-tcp-lifecycle-and-proxy-architecture.md` | ⚠️ PERLU REVISI — lihat audit A10–A11. |
+| `docs/decisions/0001-hybrid-hardware-architecture.md` | ⚠️ PERLU REVISI — akan dirapikan ke templat MADR oleh agen. |
+| `docs/post-mortems/pm-01-oom-killer-and-inode-exhaustion.md` | ⚠️ PERLU REVISI — akan disusun ulang otomatis oleh agen setelah Sub-modul 1.1 & 1.2 tuntas. |
+| `docs/runbooks/rb-01-linux-diagnostics-and-hardening.md` | ⚠️ PERLU REVISI — akan disusun ulang otomatis oleh agen setelah Sub-modul 1.3 tuntas. |
+| `docs/concepts/01-tcp-lifecycle-and-proxy-architecture.md` | ⚠️ PERLU REVISI — akan diperbarui saat masuk Fase 2. |
 
 ---
 
-## 9. Riwayat Sesi
+## 7. Riwayat Sesi
 
-| Tanggal | Fase/Sub | Tahap dicapai | Catatan |
-| :--- | :--- | :--- | :--- |
-| 2026-11-12 | — | — | Sistem belajar dirombak ke v2 (anti-halusinasi, rubrik, knowledge pack). Fase 1 diulang dalam mode re-verifikasi. |
+| Tanggal | Misi / Tahap | Catatan |
+| :--- | :--- | :--- |
+| 2026-11-12 | — | Inisialisasi struktur v2 (anti-halusinasi & knowledge pack). |
+| 2026-11-16 | Evaluasi Workflow (`/grill-me`) | Merombak sistem ke **v3**: hapus kekakuan tabel ujian & tag inline, terapkan **Bedah Anatomi Sintaks (Anti-Copas Buta)**, **Alur Misi Kecil 3 Langkah (Mulai dari Nol)**, dan **Penyusunan Dokumen Otomatis oleh Agen**. Posisi di-reset bersih ke **Misi 1.1a Langkah 1**. |
