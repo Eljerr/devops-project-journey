@@ -10,19 +10,19 @@
 | Kunci | Nilai |
 | :--- | :--- |
 | **Fase aktif** | Fase 1 — Fondasi Kernel Linux, Proses, Filesystem, & systemd |
-| **Sub-modul aktif** | 1.1 Namespaces, cgroups v2, Sinyal OS, & OOM Killer |
-| **Misi Kecil aktif** | **Misi 1.1a: Kenalan sama Proses (`/proc`) & Linux Namespaces** |
+| **Sub-modul aktif** | 1.2 File Descriptor, Inode, & Misteri Disk Penuh |
+| **Misi Kecil aktif** | **Misi 1.2a: File Descriptor (`/proc/<PID>/fd`) & Offset (`fdinfo`)** |
 | **Langkah aktif** | **Langkah 1/3 — Konsep Dasar & Bedah Alat (Mulai dari Nol)** |
 | **Mode Belajar** | `MULAI DARI NOL (Nol-Asumsi · Bedah Sintaks · Misi Kecil)` |
-| **Pembaruan terakhir** | 2026-11-16 |
+| **Pembaruan terakhir** | 2026-11-18 |
 
 ### Instruksi Spesifik untuk Agen di Sesi Berikutnya
 1. **Patuhi `AGENTS.md` (v3)**: Ngobrol santai seperti mentor manusia, **1 baris Kompas Posisi di atas**, dan **1 baris `📚 Referensi` di paling bawah** (jangan taruh tag `[DOK]`/`[PACK]` di tengah kalimat, dan jangan tampilkan tabel rubrik R1–R3).
-2. **Nol-Asumsi**: Anggap operator benar-benar mulai dari nol. Jangan mengasumsikan operator sudah tahu apa itu `/proc`, `PID`, `symlink`, atau `unshare`.
-3. **Mulai di Misi 1.1a — Langkah 1/3**:
-   * Jelaskan konsep dasar: apa itu proses di Linux, di mana kernel menyimpan "KTP" setiap proses (`/proc`), dan bagaimana konsep **Namespaces** ("kacamata kuda / sekat ruangan") bekerja.
-   * **Bedah anatomi perintah Level 1** kata demi kata: cara mengintip daftar namespace proses shell saat ini (`ls -l /proc/self/ns` — jelaskan arti `ls`, flag `-l`, apa itu `/proc/self`, dan apa itu folder `ns`).
-   * Ajak operator menjalankan perintah pengamatan dasar tersebut di terminal dan menempelkan hasilnya. **Berhenti & tunggu respons operator.**
+2. **Nol-Asumsi**: Anggap operator benar-benar mulai dari nol. Bedah setiap perintah dan flag sebelum dijalankan.
+3. **Mulai di Sub-modul 1.2 — Misi 1.2a (Langkah 1/3)**:
+   * Jelaskan konsep **File Descriptor (FD)** ("tiket/tangan pegangan proses ke file") dan 3 saluran standar bawaan setiap proses (`0` = `stdin`, `1` = `stdout`, `2` = `stderr`), serta di mana kernel memamerkannya (`/proc/<PID>/fd` dan `/proc/<PID>/fdinfo`).
+   * Bedah anatomi perintah Level 1: `ls -l /proc/self/fd`.
+   * Tunggu hasil observasi operator sebelum masuk ke Level 2 (membuka FD baru dan mengintip `pos` & `flags` di `fdinfo`).
 
 ---
 
@@ -32,21 +32,21 @@
 > Setiap misi melewati: **Langkah 1 (Konsep & Bedah Alat)** → **Langkah 2 (Coba Level 1 & Level 2 di Terminal + Bedah Output)** → **Langkah 3 (Klik & Centang `☑`)**.
 
 ### Sub-modul 1.1: Namespaces, cgroups v2, Sinyal, & OOM Killer
-- [ ] **Misi 1.1a — Proses (`/proc`) & Linux Namespaces**:
-  * *Level 1 (Observasi)*: Mengintip `/proc/self/ns` dengan `ls -l` & membaca nomor inode ruangan dengan `readlink`.
-  * *Level 2 (Eksperimen)*: Membuat ruangan PID baru dengan `unshare` (bedah flag `--pid`, `--fork`, `--mount-proc`) dan membandingkan `ps` di dalam vs di luar ruangan.
-- [ ] **Misi 1.1b — Pagar Resource cgroups v2 (`/sys/fs/cgroup`)**:
-  * *Level 1 (Observasi)*: Mengecek tipe filesystem cgroup v2 (`stat -fc %T /sys/fs/cgroup`) dan melihat isi folder cgroup milik user saat ini (`memory.current`, `memory.max`, `cpu.max`).
-  * *Level 2 (Eksperimen)*: Menjalankan proses di dalam pagar memori sementara dengan `systemd-run --user --scope` (bedah tiap flag-nya!).
-- [ ] **Misi 1.1c — Sinyal OS (`SIGTERM` vs `SIGKILL`) & Kutukan PID 1**:
-  * *Level 1 (Observasi)*: Melihat daftar sinyal (`kill -l`) dan cara baca kode keluar di shell **fish** (`$status`, aturan `128 + N`).
-  * *Level 2 (Eksperimen)*: Mengirim sinyal sopan `SIGTERM` (15) vs paksa `SIGKILL` (9), lalu menguji mengapa PID 1 di dalam namespace `unshare` mengabaikan `SIGTERM`.
-- [ ] **Misi 1.1d — OOM Killer, `memory.events`, & Peran Swap/ZRAM**:
-  * *Level 1 (Observasi)*: Melihat konfigurasi swap ZRAM di CachyOS (`swapon --show`) dan membaca counter `memory.events`.
-  * *Level 2 (Eksperimen)*: Memicu OOM Killer dengan sengaja (`MemoryMax=50M` + `MemorySwapMax=0`) dan membedakan bukti `137` biasa vs bukti asli `oom_kill`.
-- [ ] **🎯 Tantangan Chaos 1.1 & Penyusunan Otomatis Dokumen**:
-  * *Chaos (Level 3)*: Eksperimen terukur membandingkan pengaruh `MemorySwapMax` vs jenis data (`bytearray` nol vs `os.urandom` acak) satu variabel per langkah.
-  * *Dokumentasi Otomatis*: Agen menyusun Catatan Konsep (`docs/concepts/`) & Bagian 1 Post-Mortem (`pm-01`) dari obrolan chat.
+- [x] **Misi 1.1a — Proses (`/proc`) & Linux Namespaces**:
+  * *Level 1 (Observasi)*: Mengintip `/proc/self/ns` dengan `ls -l` & membaca nomor inode ruangan dengan `readlink` (`pid:[4026531836]`).
+  * *Level 2 (Eksperimen)*: Membuat ruangan PID baru dengan `unshare` (`pid:[4026532921]`, `bash` = PID 1) dan membandingkan `ps -ef` di dalam (PID 1 & 3) vs di luar ruangan (PID `426144`).
+- [x] **Misi 1.1b — Pagar Resource cgroups v2 (`/sys/fs/cgroup`)**:
+  * *Level 1 (Observasi)*: Mengecek tipe filesystem cgroup v2 (`stat -fc %T /sys/fs/cgroup` → `cgroup2fs`) dan melihat isi `cpu.max` milik `user.slice` (`max 100000`).
+  * *Level 2 (Eksperimen)*: Menjalankan proses di dalam pagar memori & CPU sementara dengan `systemd-run --user --scope -p MemoryMax=50M -p CPUQuota=20% bash` (`run-p14101-i33821.scope` → `cpu.max` = `20000 100000`, `memory.max` = `52428800`).
+- [x] **Misi 1.1c — Sinyal OS (`SIGTERM` vs `SIGKILL`) & Kutukan PID 1**:
+  * *Level 1 (Observasi)*: Melihat daftar sinyal (`kill -l`) dan membuktikan kode keluar di shell **fish** (`bash -c 'kill -9 $$'; echo $status` → `137`).
+  * *Level 2 (Eksperimen)*: Membuktikan bahwa `PID 1` di dalam namespace `unshare` mengabaikan `kill -TERM 1` dan bahkan kebal `kill -KILL 1` dari dalam ruangannya sendiri.
+- [x] **Misi 1.1d — OOM Killer, `memory.events`, & Peran Swap/ZRAM**:
+  * *Level 1 (Observasi)*: Melihat konfigurasi swap ZRAM di CachyOS (`swapon --show` → `/dev/zram0` 15.5G) dan membaca counter `memory.events` (`oom_kill 1`).
+  * *Level 2 (Eksperimen)*: Membandingkan `bytearray(100MB)` (lolos exit `0` karena `calloc` lazy allocation halaman nol) vs `"a" * 100MB` dengan `MemoryMax=50M` + `MemorySwapMax=0` (mati `137`, `max` naik `47`→`91`, `oom_kill` naik `1`→`2`).
+- [x] **🎯 Tantangan Chaos 1.1 & Penyusunan Otomatis Dokumen**:
+  * *Chaos (Level 3)*: Matriks 2×2 `"a" * 100MB` vs `os.urandom(100MB)` × `MemorySwapMax=0` vs tanpa batas swap → terbukti keduanya mati (`137`) saat `MemorySwapMax=0` dan selamat (`0`) saat swap dibuka.
+  * *Dokumentasi Otomatis*: Telah disusun di `docs/labs/lab-1.1-01-namespaces-cgroups-signals-oom.md`, `docs/concepts/02-linux-namespaces.md`, `docs/concepts/03-cgroups-v2.md`, `docs/concepts/04-os-signals-and-pid1.md`, dan Bagian 1 `docs/post-mortems/pm-01-oom-killer-and-inode-exhaustion.md`.
 
 ### Sub-modul 1.2: File Descriptor, Inode, & Misteri Disk Penuh
 - [ ] **Misi 1.2a — File Descriptor (`/proc/<PID>/fd`) & Offset (`fdinfo`)**
@@ -95,8 +95,8 @@ Akan dideteksi bersama saat masuk Misi 1.3c/1.3d (SSH) dan Fase 2.
 
 | Kode | Topik terkait | Hal yang akan dibuktikan bareng di terminal | Status |
 | :--- | :--- | :--- | :--- |
-| A3 | Misi 1.1c & 1.1d | Kode keluar `137` berasal dari sinyal `SIGKILL` (9) dari mana pun; bukti spesifik OOM Killer ada di `oom_kill` pada `memory.events`. | ☐ |
-| A7 | Chaos 1.1 | Apakah `bytearray` lolos OOM karena kompresi zstd atau karena swap (`MemorySwapMax`) belum dikunci ke 0. | ☐ |
+| A3 | Misi 1.1c & 1.1d | Kode keluar `137` berasal dari sinyal `SIGKILL` (9) dari mana pun; bukti spesifik OOM Killer ada di `oom_kill` pada `memory.events`. | ☑ |
+| A7 | Chaos 1.1 | Apakah `bytearray` lolos OOM karena kompresi zstd atau karena swap (`MemorySwapMax`) belum dikunci ke 0. | ☑ |
 | A5 & A6 | Misi 1.2c | Efek `truncate` terhadap posisi tulis (`pos` di `fdinfo`) dan perbedaan ukuran tampak vs blok disk pada *sparse file*. | ☐ |
 | A2 | Misi 1.2d | Perbedaan nyata antara *deleted open files* (`df -h` penuh) dan *inode exhaustion* (`df -i` penuh). | ☐ |
 | A8 & A9 | Misi 1.3d | Aturan "nilai pertama menang" pada `sshd_config` (verifikasi pakai `sudo sshd -T`) dan wajibnya langkah backup sebelum ubah konfigurasi. | ☐ |

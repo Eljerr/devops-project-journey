@@ -1,180 +1,114 @@
 ---
 incident-id: PM-0001
-date: 2026-11-06
-module-phase: "Fase 1.1"
+date: 2026-11-18
+module-phase: "Fase 1.1 & 1.2"
+environment: "INNER CachyOS"
+author: Asylon
 severity: "High"
-status: "Resolved"
-operator: "Eljerr"
-reviewed-by: "AI Systems Architect Agent"
+status: "In Progress (Bagian 1 Terverifikasi LAB ✓ · Bagian 2 Menunggu Sub-modul 1.2)"
+verification: "Bagian 1: Semua klaim LAB/DOK | Bagian 2: Menunggu Re-verifikasi Sub-modul 1.2"
+evidence: ["docs/labs/lab-1.1-01-namespaces-cgroups-signals-oom.md"]
+tags: [post-mortem, troubleshooting, fase-1, cgroups-v2, oom-killer, zram, deleted-open-files]
 ---
 
-> [!WARNING]
-> **PERLU REVISI (audit 2026-11-12)** — dokumen v1 ini mengandung dugaan kesalahan. Lihat `ai-context/audit-2026-11-12.md` butir A1–A7. Jangan dijadikan rujukan sampai versi v2 terbit.
-
-# Post-Mortem: Investigasi Terminasi Proses OOM Killer dan Anomali Disk Penuh (Deleted Open Files)
+# Post-Mortem: Investigasi Terminasi Proses OOM Killer (cgroups v2 & ZRAM) dan Anomali Disk Penuh
 
 ---
 
-## Bagian 1: Investigasi Terminasi Proses Akibat Batasan cgroups v2 dan OOM Killer
+## Bagian 1: Investigasi Terminasi Proses Akibat Batasan `cgroups v2`, Lazy Allocation, dan Swap ZRAM (`[LAB ✓]`)
 
-## 1. Ringkasan Eksekutif & Dampak Sistem
+### 1. Ringkasan & Dampak
+<!-- OPERATOR VOICE: ceritakan dengan bahasamu sendiri -->
+Eksperimen *chaos* terukur dilakukan di workstation **CachyOS Linux native** (kernel `7.3.3-1-cachyos`, `cgroup2fs`, swap `/dev/zram0` `15.5G`, shell `fish`) menggunakan `systemd-run --user --scope` untuk menguji kapan sebuah proses yang meminta memori 100 MB di dalam pagar `MemoryMax=50M` benar-benar dieksekusi oleh **OOM Killer**, kapan ia lolos karena *lazy allocation* (`calloc()`), dan kapan ia selamat karena dipindahkan ke swap ZRAM.
 
-Eksperimen terkontrol (*chaos drill*) dilakukan di lingkungan sandbox (WSL2 Ubuntu) untuk memverifikasi mekanisme pembatasan sumber daya kernel Linux menggunakan cgroups v2. Sebuah proses alokasi memori sengaja dipaksa meminta sumber daya melebihi kuota keras (*hard limit*) yang telah dikonfigurasi.
+### 2. Timeline
+| Waktu | Kejadian |
+| :--- | :--- |
+| 09:29 | Pemeriksaan awal `/sys/fs/cgroup/user.slice/memory.events` mencatat `max 35`, `oom 1`, `oom_kill 1`. |
+| 09:37 | Hipotesis 1 diuji: alokasi `bytearray(100 MB)` dengan `MemoryMax=50M` dan `MemorySwapMax=0` justru keluar dengan status `0` (selamat, `oom_kill` tetap `1`). |
+| 09:41 | Akar masalah lolosnya `bytearray` ditemukan (*lazy allocation* halaman nol oleh `calloc()`). Beban diubah menjadi penulisan fisik `"a" * 100 MB` → proses langsung dimatikan (`$status` = `137`, `max` melonjak ke `91`, `oom_kill` naik menjadi `2`). |
+| 08:31 (+1h) | Matriks 2×2 diuji pada `"a" * 100 MB` vs `os.urandom(100 MB)` dengan dan tanpa `MemorySwapMax=0` untuk membuktikan peran izin swap terhadap ZRAM. |
 
-Dampak yang teramati: Proses langsung dimatikan secara mendadak oleh kernel Linux segera setelah alokasi memori melampaui batas yang diizinkan, menghasilkan pemutusan eksekusi seketika (*instant termination*).
-
-## 2. Gejala Awal & Bukti Log (Detection)
-
-Perintah eksekusi:
-```bash
-sudo sh -c 'echo $$ > /sys/fs/cgroup/lab-oom/cgroup.procs && python3 -c "print(\"Sedang memakan RAM...\"); x = bytearray(100 * 1024 * 1024); print(\"Berhasil lolos!\")"'
-```
-
-Keluaran terminal:
+### 3. Gejala Awal & Bukti Log
+<!-- RAW ARTIFACT: tempel output asli tanpa diedit -->
 ```text
-Sedang memakan RAM...
-Killed
-```
+ ~/Projects/devops-project-journey  main*
+❯ swapon --show
+NAME       TYPE       SIZE USED PRIO
+/dev/zram0 partition 15.5G 1.2M  100
 
-Pemeriksaan status kode keluar (*exit code*):
-```bash
-$ echo $?
+ ~/Projects/devops-project-journey  main*
+❯ systemd-run --user --scope -p MemoryMax=50M -p MemorySwapMax=0 python3 -c 'x = bytearray(100 * 1024 * 1024)'; echo $status
+Running as unit: run-p148196-i148273.scope; invocation ID: c90c1e5dd39e4eabb133eda069e62b17
+0
+
+ ~/Projects/devops-project-journey  main*
+❯ systemd-run --user --scope -p MemoryMax=50M -p MemorySwapMax=0 python3 -c 'x = "a" * (100 * 1024 * 1024)'; echo $status
+Running as unit: run-p156657-i152894.scope; invocation ID: 77f4b1b6cb2e43d4ae5b50e5031deba0
 137
-```
+fish: Job 1, 'systemd-run --user --scope -p M…' terminated by signal SIGKILL (Forced quit)
 
-Catatan forensik cgroups v2 (`memory.events`):
-```text
+ ~/Projects/devops-project-journey  main*
+❯ cat /sys/fs/cgroup/user.slice/memory.events
+low 0
+high 0
+max 91
 oom 2
 oom_kill 2
+oom_group_kill 0
+sock_throttled 0
 ```
 
-## 3. Kronologi Investigasi & Diagnostik (Troubleshooting Flow)
+Bukti Matriks 2×2 (Peran `MemorySwapMax` vs Kompresi ZRAM):
+```text
+❯ systemd-run --user --scope -p MemoryMax=50M python3 -c 'x = "a" * (100 * 1024 * 1024)'; echo $status
+Running as unit: run-p31562-i39429.scope; invocation ID: 4b61a0bd7de94336a8170cd7087d7592
+0
 
-1. **Pembuatan Grup Kontrol (cgroup)**:  
-   Membuat sub-folder `/sys/fs/cgroup/lab-oom` sebagai wadah isolasi sumber daya.
-2. **Konfigurasi Kuota Batas Memori**:  
-   - Menetapkan batas keras memori: `echo "50M" > /sys/fs/cgroup/lab-oom/memory.max`
-   - Menonaktifkan alokasi swap file: `echo "0" > /sys/fs/cgroup/lab-oom/memory.swap.max`
-3. **Penyuntikan Beban (Load Injection)**:  
-   Menjalankan skrip Python sederhana yang meminta alokasi memori sebesar 100 MB di dalam namespace cgroup tersebut.
-4. **Verifikasi Forensik Terminasi**:  
-   Mengecek kode keluar `echo $?` yang menghasilkan nilai `137` dan memvalidasi counter `oom_kill` di `memory.events`.
+ ~/Projects/devops-project-journey  main*
+❯ systemd-run --user --scope -p MemoryMax=50M -p MemorySwapMax=0 python3 -c 'import os; x = os.urandom(100 * 1024 * 1024)'; echo $status
+Running as unit: run-p31643-i22916.scope; invocation ID: 6f22d888072a4fd59e7f21a7bea1fa29
+137
+fish: Job 1, 'systemd-run --user --scope -p M…' terminated by signal SIGKILL (Forced quit)
 
-## 4. Analisis Akar Masalah (Root Cause Analysis - Analisis Operator)
+ ~/Projects/devops-project-journey  main*
+❯ systemd-run --user --scope -p MemoryMax=50M python3 -c 'import os; x = os.urandom(100 * 1024 * 1024)'; echo $status
+Running as unit: run-p32942-i10749.scope; invocation ID: d795861f119e4b98a3ed8a8d48d08a52
+0
+```
 
-> *Penjelasan langsung oleh Operator:*  
-> "Saya membuat sebuah folder di dalam cgroup dengan mengonfigurasi `memory.max`-nya 50M dan swap-nya 0, lalu saya membuat skrip sederhana untuk melihat bagaimana OOM Killer itu benar-benar bekerja. Saya menjalankan skrip Python untuk mengalokasikan memori sebanyak 100 MB. Setelah skrip dijalankan, output yang keluar adalah `Killed`, di mana ini menandakan OOM Killer bekerja untuk mematikan seketika program tersebut. Dan ketika menjalankan perintah `echo $?`, yang keluar adalah angka `137` yang menandakan exit code kehabisan memori (+9 SIGKILL)."
+### 4. Kronologi Investigasi
+<!-- OPERATOR VOICE: termasuk tebakan yang salah -->
+1. **Hipotesis awal (`bytearray` 100 MB)**: Mengalokasikan `x = bytearray(100 * 1024 * 1024)` di dalam scope `MemoryMax=50M` dan `MemorySwapMax=0` diprediksi akan langsung mati (`137`). → Hasil: keluar `0` dan *"lah kok OOM-nya ga nambah ya"* (`oom_kill` tetap `1`).
+2. **Temuan menengah (*Lazy Allocation* `calloc()`)**: Pada kasus angka nol, Python hanya menjanjikan tempat untuk memory namun tidak benar-benar menuliskan datanya pada memory dengan menggunakan fungsi `calloc()`. Sebelum memberikan blok fisik RAM pada program baru, kernel Linux akan membersihkan terlebih dahulu blok yang tadinya dipakai dengan angka 0 biar program baru tidak bisa mengintip sisa data pada program lama. Jadi pada dasarnya menuliskan angka nol itu tidak benar-benar menuliskan data ke blok fisik, karena dari awal nilainya sudah nol.
+3. **Titik kegagalan & Pembuktian Matriks 2×2**: Saat data benar-benar ditulis ke blok fisik (`"a" * 100MB` sebagai data mudah dikompresi, dan `os.urandom(100MB)` sebagai data acak anti-kompresi), keduanya **mati (`137`)** ketika `MemorySwapMax=0` (Sel 1A & 2A), dan keduanya **selamat (`0`)** ketika `MemorySwapMax` tidak dikunci (Sel 1B & 2B), karena kelebihan memory-nya masih bisa dipindahkan ke swap.
 
-### Catatan Mekanisme Kernel:
-- Batas maksimal cgroup: **50 MB**.
-- Alokasi yang diminta proses Python: **100 MB**.
-- Karena alokasi swap bernilai 0, kernel tidak dapat memindahkan memori ke disk.
-- Kernel mengaktifkan fungsi `out_of_memory()`, menandai proses pemakan memori terbesar di cgroup tersebut, dan mengirimkan sinyal pembunuhan paksa **`SIGKILL` (Sinyal 9)**.
-- Kode keluar dihitung berdasarkan formula standar POSIX:  
-  $$\text{Exit Code} = 128 + 9 = 137$$
+### 5. Akar Masalah (5 Whys)
+<!-- OPERATOR VOICE. Setiap "Why" yang menyebut mekanisme kernel diberi label [LAB ✓]/[DOK]/[INGATAN] -->
+* **Gejala**: Proses Python `run-p156657-i152894.scope` dan `run-p31643-i22916.scope` berhenti mendadak dengan `$status` = `137` (`terminated by signal SIGKILL`).
+  * **Why 1**: Mengapa keluar kode `137`? Karena proses menerima sinyal paksa `SIGKILL` (sinyal nomor 9 → `128 + 9 = 137`). [DOK: `man 7 signal`] [LAB ✓]
+  * **Why 2**: Siapa yang mengirim `SIGKILL` tersebut (bukan `kill -9` manual)? Kita buktikan dengan memeriksa `memory.events` dari cgroup atau melihat `journalctl`, di mana nilai `oom_kill` naik dari `1` menjadi `2`. [DOK: `cgroup-v2.html`] [LAB ✓]
+  * **Why 3**: Mengapa OOM Killer terpicu? Karena proses menulis 100 MB data non-nol langsung ke halaman fisik RAM melampaui pagar `memory.max` (`52428800` Byte / 50 MB), dan usaha *reclaim* kernel (tercatat `max` melonjak dari `47` ke `91`) gagal karena pintu swap dikunci dengan `MemorySwapMax=0`. [DOK: `cgroup-v2.html`] [LAB ✓]
+  * **Mekanisme internal**: Pada cgroups v2, memori RAM (`memory.max`) dan swap (`memory.swap.max`) dihitung di dua kantong terpisah. Halaman memori yang dipindahkan ke `/dev/zram0` ditagihkan ke kantong swap cgroup (`memory.swap.current`), sehingga tanpa `MemorySwapMax=0`, bahkan data acak `os.urandom(100 MB)` yang tidak dapat dikompresi ZRAM tetap lolos dari OOM Killer selama kapasitas swap masih tersedia. [DOK: `cgroup-v2.html`, `blockdev/zram.html`] [LAB ✓ → `lab-1.1-01-namespaces-cgroups-signals-oom`]
 
-## 5. Resolusi, Mitigasi & Prinsip Rekayasa (Action Items)
+### 6. Resolusi & Bukti Pemulihan
+* **Perbaikan**: Memastikan setiap pengujian batas memori keras atau *deployment* layanan yang tidak menginginkan pelarian memori ke ZRAM menyertakan konfigurasi eksplisit `MemorySwapMax=0` (atau batas swap yang terukur), serta memverifikasi insiden OOM melalui `memory.events` (`oom_kill`), bukan sekadar menebak dari kode keluar `137`.
 
-> *Kesimpulan Operator:*  
-> "Lebih hati-hati dalam menggunakan dan memperhitungkan resource infrastruktur yang kita miliki."
+### 7. Action Items
+| # | Tindakan | Jenis (cegah/deteksi/mitigasi) | Status |
+| :--- | :--- | :--- | :--- |
+| 1 | Selalu periksa `memory.events` (`oom_kill`) atau `journalctl` saat mendapati exit code `137` agar tidak tertukar dengan `SIGKILL` manual/timeout. | Deteksi | ☑ |
+| 2 | Pasang `MemorySwapMax` secara eksplisit bersama `MemoryMax` pada unit `systemd` (Sub-modul 1.3) di host yang memiliki ZRAM aktif. | Cegah | ☐ |
 
-### Tindakan Operasional di Lingkungan Produksi Homelab:
-1. **Perhitungan Budgeting Memori yang Ketat**:  
-   Mengingat Proxmox VE hanya memiliki RAM total 8 GB dan STB hanya 2 GB, setiap kontainer LXC dan pod Kubernetes wajib memiliki batas `limits.memory` yang realistis dan diuji beban (*load test*) terlebih dahulu sebelum dirilis.
-2. **Monitoring Pra-OOM**:  
-   Menerapkan observabilitas metrik Prometheus pada metrik `container_memory_working_set_bytes` untuk mendeteksi tren kebocoran memori sebelum menyentuh batas `memory.max`.
-3. **Pembersihan Lingkungan Lab**:  
-   Menghapus direktori isolasi cgroups setelah sesi selesai:
-   ```bash
-   sudo rmdir /sys/fs/cgroup/lab-oom
-   ```
+### 8. Refleksi Operator
+<!-- OPERATOR VOICE: apa yang kamu pelajari, apa yang akan kamu lakukan berbeda -->
+* `SIGTERM` itu sinyal yang dikirim untuk mematikan sebuah proses secara *safe* dan `SIGKILL` mematikan sebuah proses secara paksa (`137`). Untuk memastikan `137` berasal dari OOM Killer, kita wajib memeriksa `memory.events` dari sebuah proses atau melihat `journalctl` dari aplikasi/service tersebut.
+* Pada kasus alokasi angka nol (`bytearray`), Python hanya menjanjikan tempat dengan `calloc()` tanpa benar-benar menulis ke blok fisik RAM karena kernel Linux sudah membersihkan blok bekas pakai dengan angka 0 demi keamanan.
+* Pada sistem dengan swap ZRAM, proses yang melewati `MemoryMax=50M` (baik data berulang maupun `os.urandom` acak) selamat ketika `MemorySwapMax` tidak dikunci semata-mata karena memory-nya masih bisa dipindahkan ke swap.
 
 ---
 
-## Bagian 2: Investigasi Anomali Ruang Disk Akibat Deleted Open Files
+## Bagian 2: Investigasi Anomali Ruang Disk Akibat Deleted Open Files & Inode Exhaustion
 
-### 1. Ringkasan Eksekutif & Skenario Insiden
-
-Eksperimen *chaos drill* dilakukan di lingkungan **Inner Loop (WSL2 Ubuntu)** untuk merekonstruksi fenomena hilangnya ruang disk fisik tanpa adanya file yang terdeteksi di direktori (*deleted open files anomaly*).
-
-Sebuah proses penulisan log latar belakang dialokasikan menahan file berukuran 500 MB melalui **File Descriptor 3**. File tersebut sengaja dihapus menggunakan perintah `rm` saat proses masih berjalan aktif.
-
-Dampak yang teramati: File menghilang dari sistem penelusuran direktori biasa (`ls` dan `du`), namun alokasi blok data pada sistem berkas tidak berkurang, menyebabkan selisih pelaporan kapasitas ruang disk antara `df` dan `du`.
-
-### 2. Gejala Awal & Bukti Forensik (Detection & Evidence)
-
-Injeksi proses latar belakang pemegang file 500 MB:
-```bash
-bash -c 'exec 3> /tmp/insiden_produksi.log; fallocate -l 500M /tmp/insiden_produksi.log; while true; do echo "$(date) - menulis log..." >&3; sleep 2; done' &
-```
-
-Penghapusan file via antarmuka direktori:
-```bash
-rm /tmp/insiden_produksi.log
-```
-
-Verifikasi di tingkat direktori:
-```bash
-$ ls -l /tmp/insiden_produksi.log
-ls: cannot access '/tmp/insiden_produksi.log': No such file or directory
-```
-
-Deteksi berkas tertahan menggunakan `lsof +L1`:
-```text
-COMMAND   PID USER   FD   TYPE DEVICE SIZE/OFF NLINK     NODE NAME
-bash   695177  joy    3w   REG  259,9 524288000     0 11683373 /tmp/insiden_produksi.log (deleted)
-```
-
-Inspeksi langsung pada tabel *File Descriptor* proses (`/proc/<PID>/fd/3`):
-```text
-❯ stat /proc/695177/fd/3
-  File: /proc/695177/fd/3 -> '/tmp/insiden_produksi.log (deleted)'
-  Size: 64              Blocks: 0          IO Block: 1024   symbolic link
-Device: 0,26    Inode: 11683373    Links: 1
-Access: (0300/l-wx------)  Uid: ( 1000/     joy)   Gid: ( 1000/     joy)
-Access: 2026-11-10 15:24:49.804137648 +0700
-Modify: 2026-11-10 15:21:36.009744069 +0700
-Change: 2026-11-10 15:21:36.009744069 +0700
-```
-
-Terminasi proses pengunci berkas:
-```text
-❯ kill 695177
-fish: Job 1, 'bash -c 'exec 3> /tmp/insiden_p…' terminated by signal SIGTERM (Polite quit request)
-```
-
-### 3. Analisis Akar Masalah (Root Cause Analysis - Analisis Operator)
-
-> *Penjelasan langsung oleh Operator:*  
-> 1. "Kernel menambahkan keterangan `deleted` karena Dentry sudah di-`rm`, yang mana `rm` itu menghapus link (*unlink*)."  
-> 2. "Tool `lsof +L1` memang dirancang khusus untuk mendeteksi file yang link count-nya kurang dari 1, sedangkan `ls` dan `du` itu mendeteksi link-nya (*directory traversal*)."  
-> 3. "Jujur setelah saya cari tahu, perintah `truncate` itu tidak efektif karena bisa mengubah *offset* di Open File Table. Jika diasumsikan aplikasi cukup pintar dalam menulis log sehingga bisa dengan pendekatan `truncate`, ya tidak ada masalah berarti."
-
-### 4. Catatan Mekanisme Kernel & Arsitektur Sistem
-
-1. **Pemisahan Dentry vs Inode**:
-   - Perintah `rm` memicu *system call* `unlink()`, yang hanya memutus asosiasi antara string nama file di tabel direktori (dentry) dengan nomor Inode (`11683373`), sehingga `nlink` bernilai 0.
-   - Kernel Linux mempertahankan blok data selama `Open File Description` pada tabel kernel masih memiliki referensi aktif (`ref_count > 0`). Kernel menambahkan tag `(deleted)` pada *symlink* di `/proc/<PID>/fd/` untuk menandai bahwa berkas fisik sudah tidak memiliki pintu masuk dentry.
-2. **Perbedaan Fundamental `du` vs `df` vs `lsof +L1`**:
-   - **`du`**: Melakukan penelusuran hierarki direktori (*dentry tree*). Ketika dentry terhapus, `du` gagal menemukan berkas dan melaporkan ukuran yang berkurang.
-   - **`df`**: Membaca alokasi blok fisik pada *superblock* sistem berkas. Blok data masih berstatus *in-use*, sehingga `df` tetap melaporkan partisi penuh.
-   - **`lsof +L1`**: Memindai langsung struktur tabel berkas terbuka kernel dan memfilter Inode yang memiliki nilai `nlink < 1`.
-3. **Pembedahan File Offset vs `truncate` (Temuan Lanjutan Operator)**:
-   - Ketika file yang sedang dibuka di-*truncate* menjadi 0 byte (`> /proc/<PID>/fd/3`), ukuran berkas pada Inode berubah menjadi 0.
-   - Namun, jika aplikasi membuka berkas tanpa flag **`O_APPEND`**, penunjuk posisi tulis (*file write offset*) pada struktur *Open File Description* di kernel tetap berada di posisi offset terakhir (misal 500 MB). Penulisan berikutnya akan menghasilkan *sparse file* dengan lubang kosong (*null-byte hole*), sehingga ruang disk dapat kembali terisi secara anomali.
-   - Jika aplikasi menggunakan flag `O_APPEND`, setiap pemanggilan *system call* `write()` secara otomatis memaksa kernel memindahkan offset ke posisi akhir berkas terkini (`SEEK_END`), sehingga pemangkasan (*truncation*) dapat berjalan aman dan efektif.
-
-### 5. Resolusi & Mitigasi Praktik Rekayasa Produksi (Action Items)
-
-1. **Standardisasi Log Rotation**:  
-   Jangan pernah menghapus file log aktif menggunakan `rm`. Gunakan utilitas standar `logrotate` dengan strategi yang tepat:
-   - Mode `copytruncate`: Menyalin isi log lalu memangkas ukuran berkas ke 0 secara aman untuk aplikasi yang mendukungnya.
-   - Mode Signal Re-open: Memindahkan berkas log lalu mengirimkan sinyal reload (`SIGHUP` atau `SIGUSR1`) kepada aplikasi (seperti Nginx/Logstash) agar aplikasi menutup FD lama dan membuka FD baru secara bersih.
-2. **Prosedur Diagnostik Insiden Disk Penuh**:  
-   Jika terjadi *alert* disk 100% penuh namun `du` tidak menemukan berkas besar di direktori:
-   ```bash
-   # Segera jalankan lsof untuk mencari open deleted files
-   lsof +L1
-   ```
-3. **Pembersihan Tanpa Downtime**:  
-   Sebelum memutuskan tindakan *restart* layanan kritis, periksa apakah aplikasi menggunakan penulisan append. Jika aman, lakukan pembebasan instan melalui manipulasi *file descriptor* `/proc/<PID>/fd/<FD>` atau lakukan *graceful restart* via `systemctl reload` / sinyal `SIGUSR1`.
+> [!WARNING]
+> **MENUNGGU SUB-MODUL 1.2** — Bagian 2 di bawah ini masih berasal dari draf v1 dan akan segera disusun ulang secara otomatis menggunakan bukti terminal asli CachyOS (`~/lab/` di filesystem `ext4`) begitu Misi Kecil 1.2a s/d 1.2d selesai.

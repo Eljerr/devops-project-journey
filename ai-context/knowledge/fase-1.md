@@ -11,20 +11,20 @@
 ### Fakta Inti
 | # | Status | Klaim | Label/Sumber | BUKTIKAN (perintah → harapan) |
 | :--- | :--- | :--- | :--- | :--- |
-| 1.1-F1 | ☐ | Linux punya 8 jenis namespace: `mnt`, `pid`, `net`, `uts`, `ipc`, `user`, `cgroup`, `time`. | [DOK: man 7 namespaces] | `ls -l /proc/self/ns` → 8 jenis (+ varian `*_for_children`) |
-| 1.1-F2 | ☐ | Dua proses berada di namespace yang sama jika nomor inode symlink `/proc/<PID>/ns/<jenis>` sama. | [DOK: man 7 namespaces] | `readlink /proc/self/ns/pid` di dua terminal → angka sama |
-| 1.1-F3 | ☐ | Proses pertama di PID namespace baru melihat dirinya sebagai PID 1, tetapi di host punya PID biasa. | [DOK: man 7 pid_namespaces] | `sudo unshare --pid --fork --mount-proc bash` lalu `ps -ef` → bash = PID 1; dari terminal lain `ps -ef \| grep unshare` → PID besar |
-| 1.1-F4 | ☐ | Sistem memakai cgroup v2 (hierarki tunggal) jika `/sys/fs/cgroup` bertipe `cgroup2fs`. | [DOK: docs.kernel.org cgroup-v2] (cek-agen: `cgroup2fs`) | `stat -fc %T /sys/fs/cgroup` → `cgroup2fs` |
-| 1.1-F5 | ☐ | `memory.max` = batas keras memori. Melewatinya → kernel mencoba reclaim; jika gagal → OOM killer **di dalam cgroup itu**. | [DOK: cgroup-v2, bagian Memory] | lihat Ide Chaos 1 |
-| 1.1-F6 | ☐ | Swap dibatasi terpisah lewat `memory.swap.max`. Memori yang di-swap **tidak** dihitung di `memory.current`. | [DOK: cgroup-v2] | saat lab: bandingkan `memory.current` vs `memory.swap.current` |
-| 1.1-F7 | ☐ | `memory.events` berisi penghitung `low`, `high`, `max`, `oom`, `oom_kill`, `oom_group_kill`. Bukti OOM yang sah = `oom_kill` naik. | [DOK: cgroup-v2] | `cat .../memory.events` setelah chaos |
-| 1.1-F8 | ☐ | `cpu.max` berformat `"<kuota> <periode>"` dalam mikrodetik. Default `max 100000`. `20000 100000` = 20% satu CPU. | [DOK: cgroup-v2, bagian CPU] | `cat /sys/fs/cgroup/user.slice/cpu.max` |
-| 1.1-F9 | ☐ | `SIGKILL` (9) dan `SIGSTOP` tidak bisa ditangkap, diblokir, atau diabaikan. `SIGTERM` (15) bisa ditangkap. | [DOK: man 7 signal] | `bash -c 'trap "echo dapat TERM" TERM; sleep 100 & wait'` lalu kirim `kill -TERM` vs `kill -KILL` |
-| 1.1-F10 | ☐ | PID 1 sebuah PID namespace hanya menerima sinyal yang **punya handler**. Pengecualian: `SIGKILL`/`SIGSTOP` dari namespace leluhur tetap dikirim paksa. | [DOK: man 7 pid_namespaces] | Di dalam `unshare` (F3): `kill -TERM 1` → tidak mati; dari host `sudo kill -KILL <pid-host>` → mati |
+| 1.1-F1 | ☑ | Linux punya 8 jenis namespace: `mnt`, `pid`, `net`, `uts`, `ipc`, `user`, `cgroup`, `time`. | [DOK: man 7 namespaces] [LAB ✓] | `ls -l /proc/self/ns` → 8 jenis (+ varian `*_for_children`) |
+| 1.1-F2 | ☑ | Dua proses berada di namespace yang sama jika nomor inode symlink `/proc/<PID>/ns/<jenis>` sama. | [DOK: man 7 namespaces] [LAB ✓] | `readlink /proc/self/ns/pid` di dua terminal → angka sama (`4026531836`) |
+| 1.1-F3 | ☑ | Proses pertama di PID namespace baru melihat dirinya sebagai PID 1, tetapi di host punya PID biasa. | [DOK: man 7 pid_namespaces] [LAB ✓] | `sudo unshare --pid --fork --mount-proc bash` lalu `ps -ef` → bash = PID 1; di host PID `426144` |
+| 1.1-F4 | ☑ | Sistem memakai cgroup v2 (hierarki tunggal) jika `/sys/fs/cgroup` bertipe `cgroup2fs`. | [DOK: docs.kernel.org cgroup-v2] [LAB ✓] | `stat -fc %T /sys/fs/cgroup` → `cgroup2fs` |
+| 1.1-F5 | ☑ | `memory.max` = batas keras memori. Melewatinya → kernel mencoba reclaim; jika gagal → OOM killer **di dalam cgroup itu**. | [DOK: cgroup-v2, bagian Memory] [LAB ✓] | `MemoryMax=50M` + `MemorySwapMax=0` + `'x = "a" * (100*1024*1024)'` → `137` & `oom_kill` naik (`1` → `2`) |
+| 1.1-F6 | ☑ | Swap dibatasi terpisah lewat `memory.swap.max`. Memori yang di-swap **tidak** dihitung di `memory.current`. | [DOK: cgroup-v2] [LAB ✓] | Matriks 2×2 (`"a"*100MB` & `os.urandom(100MB)`): mati `137` saat `MemorySwapMax=0`, selamat `0` saat swap dibuka |
+| 1.1-F7 | ☑ | `memory.events` berisi penghitung `low`, `high`, `max`, `oom`, `oom_kill`, `oom_group_kill`. Bukti OOM yang sah = `oom_kill` naik. | [DOK: cgroup-v2] [LAB ✓] | `cat /sys/fs/cgroup/user.slice/memory.events` → `max` naik `47`→`91`, `oom_kill` naik `1`→`2` |
+| 1.1-F8 | ☑ | `cpu.max` berformat `"<kuota> <periode>"` dalam mikrodetik. Default `max 100000`. `20000 100000` = 20% satu CPU. | [DOK: cgroup-v2, bagian CPU] [LAB ✓] | `cat /sys/fs/cgroup/user.slice/cpu.max` & scope `20000 100000` |
+| 1.1-F9 | ☑ | `SIGKILL` (9) dan `SIGSTOP` tidak bisa ditangkap, diblokir, atau diabaikan. `SIGTERM` (15) bisa ditangkap. | [DOK: man 7 signal] [LAB ✓] | `kill -l` & `bash -c 'kill -9 $$'` |
+| 1.1-F10 | ☑ | PID 1 sebuah PID namespace hanya menerima sinyal yang **punya handler**. Pengecualian: `SIGKILL`/`SIGSTOP` dari namespace leluhur tetap dikirim paksa. | [DOK: man 7 pid_namespaces] [LAB ✓] | Di dalam `unshare`: `kill -TERM 1` & `kill -KILL 1` → tidak mati |
 | 1.1-F11 | ☐ | Jika PID 1 sebuah namespace mati, kernel mengirim `SIGKILL` ke semua proses lain di namespace itu. | [DOK: man 7 pid_namespaces] | Jalankan `sleep 1000 &` di dalam unshare, matikan bash PID 1 → sleep ikut hilang |
-| 1.1-F12 | ☐ | Kode keluar `128+N` berarti proses mati oleh sinyal N. 137 = 128+9 (SIGKILL). Di bash dibaca lewat `$?`, di fish lewat `$status`. | [DOK: bash(1) EXIT STATUS] (cek-agen: fish & bash sama-sama 137) | fish: `bash -c 'kill -9 $$'; echo $status` → `137` |
-| 1.1-F13 | ☐ | **137 tidak otomatis berarti OOM.** `kill -9` manual juga menghasilkan 137. OOM dibuktikan oleh `oom_kill` di `memory.events` atau log kernel. | [DOK: gabungan F7 + F12] | `journalctl -k \| grep -i "out of memory"` |
-| 1.1-F14 | ☐ | zram adalah perangkat swap di RAM yang terkompresi. Bagi cgroup, halaman yang dipindah ke zram dihitung sebagai **swap**, bukan memori. | [DOK: docs.kernel.org admin-guide/blockdev/zram] + [INGATAN untuk detail charging] | `swapon --show` → `/dev/zram0` (cek-agen: ada, 15.5G) |
+| 1.1-F12 | ☑ | Kode keluar `128+N` berarti proses mati oleh sinyal N. 137 = 128+9 (SIGKILL). Di bash dibaca lewat `$?`, di fish lewat `$status`. | [DOK: bash(1) EXIT STATUS] [LAB ✓] | fish: `bash -c 'kill -9 $$'; echo $status` → `137` |
+| 1.1-F13 | ☑ | **137 tidak otomatis berarti OOM.** `kill -9` manual juga menghasilkan 137. OOM dibuktikan oleh `oom_kill` di `memory.events` atau log kernel. | [DOK: gabungan F7 + F12] [LAB ✓] | Bandingkan `kill -9 $$` (`137` tanpa `oom_kill`) vs OOM scope (`137` + `oom_kill` naik ke `2`) |
+| 1.1-F14 | ☑ | zram adalah perangkat swap di RAM yang terkompresi. Bagi cgroup, halaman yang dipindah ke zram dihitung sebagai **swap**, bukan memori. | [DOK: docs.kernel.org admin-guide/blockdev/zram] [LAB ✓] | `swapon --show` → `/dev/zram0` (15.5G) |
 
 ### Miskonsepsi Umum
 | Miskonsepsi | Kenyataan | Sumber |
@@ -33,7 +33,7 @@
 | "PID 1 mengabaikan SIGTERM karena dia root" | Karena aturan kernel khusus init namespace: sinyal tanpa handler tidak dikirim. Tidak ada hubungannya dengan root. | man 7 pid_namespaces |
 | "Exit 137 = kehabisan memori" | 137 = mati oleh SIGKILL, dari mana pun. | F13 |
 | "zram/kompresi mencegah OOM" | Yang menentukan adalah **apakah swap diizinkan** (`memory.swap.max`). Kompresi hanya memengaruhi berapa banyak RAM fisik yang terpakai zram. | F6, F14 — **wajib dibuktikan dengan Ide Chaos 2** |
-| "`bytearray(100MB)` Python tidak memakai RAM karena isinya nol" | [INGATAN] `bytearray(n)` mengisi nol secara eksplisit sehingga halaman benar-benar disentuh. Berbeda dengan `bytes(n)` yang bisa memakai `calloc`. | Buktikan: ukur `memory.current`/`memory.peak` saat keduanya dialokasikan |
+| "`bytearray(100MB)` langsung menyentuh 100 MB RAM fisik" | **[KOREKSI LAB ✓ 2026-11-17]**: Di Python 3.12 Linux, `bytearray(100*1024*1024)` memakai `calloc()` → `mmap(MAP_ANONYMOUS)` (*lazy allocation*), sehingga keluar `0` tanpa menyentuh RSS fisik jika tidak ditulis. Untuk benar-benar menyentuh halaman fisik, tulis data non-nol (mis. `'x = "a" * (100*1024*1024)'`) atau `os.urandom`. | Dibuktikan di terminal operator (`run-p148196` → exit `0` vs `run-p156657` → exit `137`, `oom_kill` `1`→`2`) |
 
 ### Jebakan Lingkungan Operator
 * **fish ≠ bash**: `$?` tidak ada di fish (error). `$$` di fish adalah `$fish_pid`. Loop: `for i in (seq 10); ...; end`. Untuk skrip bash, jalankan `bash -c '...'`.
