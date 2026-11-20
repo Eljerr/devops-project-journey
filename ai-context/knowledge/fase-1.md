@@ -67,16 +67,16 @@
 ### Fakta Inti
 | # | Status | Klaim | Label/Sumber | BUKTIKAN |
 | :--- | :--- | :--- | :--- | :--- |
-| 1.2-F1 | ☐ | Setiap proses punya tabel FD di `/proc/<PID>/fd/`. 0, 1, 2 = stdin, stdout, stderr. | [DOK: man 5 proc] | `ls -l /proc/self/fd` |
-| 1.2-F2 | ☐ | `/proc/<PID>/fdinfo/<FD>` menampilkan `pos` (offset) dan `flags` (oktal). `O_APPEND` = bit `02000`. | [DOK: man 5 proc] (cek-agen: append → `0102001`, tanpa append → `0100001`) | `bash -c 'exec 3>>/tmp/a; cat /proc/$$/fdinfo/3'` |
-| 1.2-F3 | ☐ | Nama file (entri direktori) terpisah dari inode (metadata + blok data). Satu inode bisa punya banyak nama (hard link). | [DOK: man 7 inode] | `touch a; ln a b; stat -c '%i %h' a b` → inode sama, link 2 |
-| 1.2-F4 | ☐ | `rm` memanggil `unlink()`. Data baru dibebaskan jika jumlah link = 0 **dan** tidak ada FD yang masih membuka file. | [DOK: man 2 unlink] | Ide Chaos 1 |
-| 1.2-F5 | ☐ | `df` bertanya ke filesystem lewat `statfs()`. `du` menjumlahkan blok dari file yang **bisa ditemukan lewat direktori**. File terhapus-tapi-terbuka hanya terlihat oleh `df`. | [DOK: df(1), du(1), statfs(2)] | Ide Chaos 1 |
-| 1.2-F6 | ☐ | `lsof +L1` menampilkan file terbuka dengan link count < 1 (sudah dihapus). | [DOK: lsof(8)] | `lsof +L1` saat chaos |
-| 1.2-F7 | ☐ | Dengan `O_APPEND`, setiap `write()` dimulai di akhir file. | [DOK: man 2 open] | lihat F8 |
-| 1.2-F8 | ☐ | Jika file di-*truncate* ke 0 sementara penulis **tanpa** `O_APPEND` masih di offset lama, tulisan berikutnya membuat **sparse file**: ukuran tampak (`ls -l`) besar, tetapi blok di disk (`du`) kecil. Ruang disk **tetap** bebas; yang menipu adalah ukuran tampaknya. | [DOK: man 2 lseek "holes"] | `ls -ls file` dan `du --apparent-size file` vs `du file` |
-| 1.2-F9 | ☐ | ext4 punya jumlah inode **tetap** sejak `mkfs`. Inode bisa habis walau ruang masih ada → `No space left on device`. | [DOK: mke2fs(8) opsi -N/-i] | Ide Chaos 2, cek `df -i` |
-| 1.2-F10 | ☐ | "File terhapus tapi masih terbuka" dan "inode habis" adalah **dua masalah berbeda**. | [DOK: F4 + F9] | Bandingkan `df -h` vs `df -i` di kedua chaos |
+| 1.2-F1 | ☑ | Setiap proses punya tabel FD di `/proc/<PID>/fd/`. 0, 1, 2 = stdin, stdout, stderr. | [DOK: man 5 proc] [LAB ✓] | `ls -l /proc/self/fd` (`0, 1, 2 -> /dev/pts/0`) |
+| 1.2-F2 | ☑ | `/proc/<PID>/fdinfo/<FD>` menampilkan `pos` (offset) dan `flags` (oktal). `O_APPEND` = bit `02000`. | [DOK: man 5 proc] [LAB ✓] | `exec 3>` (`pos: 5`, `flags: 0100001`) vs `exec 3>>` (`pos: 10`, `flags: 0102001`, `ino: 1352`) |
+| 1.2-F3 | ☑ | Nama file (entri direktori) terpisah dari inode (metadata + blok data). Satu inode bisa punya banyak nama (hard link). | [DOK: man 7 inode] [LAB ✓] | `ln koper_a.txt koper_b.txt; stat -c '%i %h'` → Inode sama (`4849708`), Links `2` |
+| 1.2-F4 | ☑ | `rm` memanggil `unlink()`. Data baru dibebaskan jika jumlah link = 0 **dan** tidak ada FD yang masih membuka file. | [DOK: man 2 unlink] [LAB ✓] | `rm ~/lab/hantu.log` saat ditahan `exec 3>` → blok `500M` baru kembali setelah `kill 74329 78069` |
+| 1.2-F5 | ☑ | `df` bertanya ke filesystem lewat `statfs()`. `du` menjumlahkan blok dari file yang **bisa ditemukan lewat direktori**. File terhapus-tapi-terbuka hanya terlihat oleh `df`. | [DOK: df(1), du(1), statfs(2)] [LAB ✓] | Setelah `rm`: `du -sh` turun `501M`→`4.0K`, `df -BM` tetap `52156M` sampai proses di-`kill` (`51656M`) |
+| 1.2-F6 | ☑ | `lsof +L1` menampilkan file terbuka dengan link count < 1 (sudah dihapus). | [DOK: lsof(8)] [LAB ✓] | `lsof +L1 \| grep lab` menangkap `sleep 74329/78069 3w NLINK=0 NODE=4849708 (deleted)` |
+| 1.2-F7 | ☑ | Dengan `O_APPEND`, setiap `write()` dimulai di akhir file. | [DOK: man 2 open] [LAB ✓] | `exec 3>>` (`flags: 0102001`) vs `exec 3>` (`flags: 0100001`) |
+| 1.2-F8 | ☑ | Jika file di-*truncate* ke 0 sementara penulis **tanpa** `O_APPEND` masih di offset lama, tulisan berikutnya membuat **sparse file**: ukuran tampak (`ls -l`) besar, tetapi blok di disk (`du`) kecil. Ruang disk **tetap** bebas; yang menipu adalah ukuran tampaknya. | [DOK: man 2 lseek "holes"] [LAB ✓] | `truncate -s 0` pada `pos: 104857600` lalu `echo "halo" >&3` → `pos: 104857605`, fisik `du -h` = `4.0K`, tampak `--apparent-size` = `101M` |
+| 1.2-F9 | ☑ | ext4 punya jumlah inode **tetap** sejak `mkfs`. Inode bisa habis walau ruang masih ada → `No space left on device`. | [DOK: mke2fs(8) opsi -N/-i] [LAB ✓] | `mkfs.ext4 -N 64` (72 inodes) → `file_61.txt` gagal `No space left on device` (`df -h` `1%`, `df -i` `100%`) |
+| 1.2-F10 | ☑ | "File terhapus tapi masih terbuka" dan "inode habis" adalah **dua masalah berbeda**. | [DOK: F4 + F9] [LAB ✓] | Bandingkan Misi 1.2c (`df -BM` penuh vs `du` kosong) dengan Misi 1.2d (`df -i` `100%` vs `df -h` `1%`) |
 
 ### Miskonsepsi Umum
 | Miskonsepsi | Kenyataan |
@@ -109,13 +109,13 @@
 ### Fakta Inti
 | # | Status | Klaim | Label/Sumber | BUKTIKAN |
 | :--- | :--- | :--- | :--- | :--- |
-| 1.3-F1 | ☐ | Setiap unit service berjalan di cgroup sendiri, misal `/sys/fs/cgroup/system.slice/<unit>.service/`. | [DOK: systemd.resource-control(5)] | `systemctl show -p ControlGroup <unit>` |
-| 1.3-F2 | ☐ | `MemoryMax=` → `memory.max`; `MemorySwapMax=` → `memory.swap.max`; `CPUQuota=20%` → `cpu.max` = `20000 100000`. | [DOK: systemd.resource-control(5)] | set di unit → `cat` file cgroup-nya |
-| 1.3-F3 | ☐ | Default batas start: 5 kali dalam 10 detik (`StartLimitBurst`, `StartLimitIntervalSec`). Melewati → unit gagal dengan hasil `start-limit-hit`. | [DOK: systemd.unit(5)] (cek-agen: 5 / 10s) | `systemctl show -p DefaultStartLimitBurst -p DefaultStartLimitIntervalUSec` |
-| 1.3-F4 | ☐ | Setelah mengubah file unit, wajib `systemctl daemon-reload`. | [DOK: systemctl(1)] | ubah unit tanpa reload → `systemctl status` memberi peringatan |
-| 1.3-F5 | ☐ | Di `sshd_config`, untuk tiap kata kunci, **nilai pertama yang ditemukan dipakai**. `Include sshd_config.d/*.conf` biasanya ada di atas, jadi drop-in menang atas baris di bawahnya. | [DOK: sshd_config(5)] | `sudo sshd -T \| grep -i passwordauthentication` |
-| 1.3-F6 | ☐ | `sshd -t` memeriksa sintaks; `sshd -T` menampilkan konfigurasi **efektif**. Selalu jalankan sebelum reload. | [DOK: sshd(8)] | `sudo sshd -t && echo OK` |
-| 1.3-F7 | ☐ | Klien SSH menolak private key yang izinnya terlalu terbuka (`UNPROTECTED PRIVATE KEY FILE`). Server (StrictModes) memeriksa izin `~/.ssh` dan `authorized_keys`. | [DOK: ssh(1), sshd_config(5) StrictModes] | `chmod 644 ~/.ssh/id_ed25519` (salinan uji!) → coba login → kembalikan 600 |
+| 1.3-F1 | ☑ | Setiap unit service berjalan di cgroup sendiri, misal `/sys/fs/cgroup/system.slice/<unit>.service/`. | [DOK: systemd.resource-control(5)] [LAB ✓] | `systemctl --user status latihan.service` → `CGroup: /user.slice/.../latihan.service` |
+| 1.3-F2 | ☑ | `MemoryMax=` → `memory.max`; `MemorySwapMax=` → `memory.swap.max`; `CPUQuota=20%` → `cpu.max` = `20000 100000`. | [DOK: systemd.resource-control(5)] [LAB ✓] | set di `latihan.service` → `memory.max`=`52428800`, `memory.swap.max`=`0`, `cpu.max`=`20000 100000` |
+| 1.3-F3 | ☑ | Default batas start: 5 kali dalam 10 detik (`StartLimitBurst`, `StartLimitIntervalSec`). Melewati → unit gagal dengan hasil `start-limit-hit`. | [DOK: systemd.unit(5)] [LAB ✓] | `systemctl show -p DefaultStartLimitBurst -p DefaultStartLimitIntervalUSec` (`5` / `10s`) & `latihan.service` `start-limit-hit` |
+| 1.3-F4 | ☑ | Setelah mengubah file unit, wajib `systemctl daemon-reload`. | [DOK: systemctl(1)] [LAB ✓] | ubah `latihan.service` tanpa reload → `Warning: The unit file... changed on disk` |
+| 1.3-F5 | ☑ | Di `sshd_config`, untuk tiap kata kunci, **nilai pertama yang ditemukan dipakai**. `Include sshd_config.d/*.conf` biasanya ada di atas, jadi drop-in menang atas baris di bawahnya. | [DOK: sshd_config(5)] [LAB ✓] | `/usr/bin/sshd -T -f ~/lab/ssh_lab/sshd_uji.conf -h ~/lab/ssh_lab/host_key` → `PasswordAuthentication yes` menang atas `no` di bawah |
+| 1.3-F6 | ☑ | `sshd -t` memeriksa sintaks; `sshd -T` menampilkan konfigurasi **efektif**. Selalu jalankan sebelum reload. | [DOK: sshd(8)] [LAB ✓] | `/usr/bin/sshd -t -f ...` (`Syntax exit: 0`) & `sshd -T` |
+| 1.3-F7 | ☑ | Klien SSH menolak private key yang izinnya terlalu terbuka (`UNPROTECTED PRIVATE KEY FILE`). Server (StrictModes) memeriksa izin `~/.ssh` dan `authorized_keys`. | [DOK: ssh(1), sshd_config(5) StrictModes] [LAB ✓] | `chmod 644 ~/lab/kunci_uji; ssh-keygen -y -f ~/lab/kunci_uji` → `UNPROTECTED PRIVATE KEY FILE!` |
 | 1.3-F8 | ☐ | Nama service berbeda: Ubuntu `ssh`, Arch/CachyOS `sshd`. Ubuntu baru memakai socket activation (`ssh.socket`). | [DOK: Ubuntu Server docs] + [INGATAN untuk versi pastinya] | di STB: `systemctl status ssh.socket ssh.service` |
 
 ### Miskonsepsi Umum

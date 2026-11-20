@@ -11,13 +11,13 @@
 ### Fakta Inti
 | # | Status | Klaim | Label/Sumber | BUKTIKAN |
 | :--- | :--- | :--- | :--- | :--- |
-| 2.1-F1 | ☐ | Socket adalah FD milik proses. `ss -tlpn` menunjukkan proses pemilik socket LISTEN. | [DOK: ss(8), man 7 socket] | `sudo ss -tlpn` lalu `ls -l /proc/<PID>/fd \| grep socket` |
-| 2.1-F2 | ☐ | Koneksi ke port tanpa listener → kernel membalas `RST` → klien langsung dapat `Connection refused`. | [DOK: RFC 9293] | `curl -v localhost:5999` + `sudo tcpdump -i lo port 5999` |
+| 2.1-F1 | ☑ | Socket adalah FD milik proses. `ss -tlpn` menunjukkan proses pemilik socket LISTEN. | [DOK: ss(8), man 7 socket] [LAB ✓] | `sudo ss -tlpn` → `users:(("containerd",pid=743,fd=13))` |
+| 2.1-F2 | ☑ | Koneksi ke port tanpa listener → kernel membalas `RST` → klien langsung dapat `Connection refused`. | [DOK: RFC 9293] [LAB ✓] | `curl -v http://127.0.0.1:5999` → `after 0 ms: Connection refused` vs dengan `python3 -m http.server 5999` → `200 OK` |
 | 2.1-F3 | ☐ | Firewall `DROP` tidak membalas apa pun → klien menunggu sampai timeout. `REJECT` membalas (ICMP atau RST) → gagal cepat. | [DOK: iptables-extensions(8) REJECT] | Ide Chaos 1 |
-| 2.1-F4 | ☐ | `TIME_WAIT` terjadi di pihak yang **pertama** mengirim `FIN`. | [DOK: RFC 9293 state diagram] | `ss -tan state time-wait` setelah `curl` |
-| 2.1-F5 | ☐ | Di Linux, lama `TIME_WAIT` adalah 60 detik dan **tidak** bisa diubah lewat sysctl. `tcp_fin_timeout` mengatur hal lain (FIN_WAIT_2). | [DOK: docs.kernel.org networking/ip-sysctl `tcp_fin_timeout`] + [INGATAN: konstanta `TCP_TIMEWAIT_LEN`] | `watch -n1 'ss -tan state time-wait \| wc -l'` |
-| 2.1-F6 | ☐ | `CLOSE_WAIT` = pihak lawan sudah menutup, tetapi aplikasi lokal belum memanggil `close()`. Jika menumpuk → bug aplikasi (FD bocor). | [DOK: RFC 9293] | Ide Chaos 3 |
-| 2.1-F7 | ☐ | Koneksi keluar memakai port sementara dari `ip_local_port_range`. Batasnya berlaku **per tujuan** (IP+port tujuan yang sama), bukan global. | [DOK: ip-sysctl `ip_local_port_range`] (cek-agen: 32768–60999) | `cat /proc/sys/net/ipv4/ip_local_port_range` |
+| 2.1-F4 | ☑ | `TIME_WAIT` terjadi di pihak yang **pertama** mengirim `FIN`. | [DOK: RFC 9293 state diagram] [LAB ✓] | `ss -tan state time-wait` setelah `curl` (`127.0.0.1:5999`) |
+| 2.1-F5 | ☑ | Di Linux, lama `TIME_WAIT` adalah 60 detik dan **tidak** bisa diubah lewat sysctl. `tcp_fin_timeout` mengatur hal lain (FIN_WAIT_2). | [DOK: docs.kernel.org networking/ip-sysctl `tcp_fin_timeout`] [LAB ✓] | `ss -tano state time-wait` → `timer:(timewait,59sec,0)` |
+| 2.1-F6 | ☑ | `CLOSE_WAIT` = pihak lawan sudah menutup, tetapi aplikasi lokal belum memanggil `close()`. Jika menumpuk → bug aplikasi (FD bocor). | [DOK: RFC 9293] [LAB ✓] | Python menahan `conn` dengan `time.sleep(15)` setelah `curl --max-time 1` → `CLOSE-WAIT 79 0 127.0.0.1:5999` |
+| 2.1-F7 | ☑ | Koneksi keluar memakai port sementara dari `ip_local_port_range`. Batasnya berlaku **per tujuan** (IP+port tujuan yang sama), bukan global. | [DOK: ip-sysctl `ip_local_port_range`] [LAB ✓] | `cat /proc/sys/net/ipv4/ip_local_port_range` → `32768 60999` |
 | 2.1-F8 | ☐ | `keepalive N;` di blok `upstream` nginx = maksimal N koneksi **idle** yang disimpan **per worker process**. Butuh `proxy_http_version 1.1;` dan `proxy_set_header Connection "";`. | [DOK: nginx.org ngx_http_upstream_module#keepalive] | di STB: `ss -tn dst <ip-upstream>` saat ada lalu lintas |
 | 2.1-F9 | ☐ | `cloudflared` membuat koneksi **keluar** ke edge Cloudflare (port 7844), jadi tidak butuh port forwarding di modem. | [DOK: developers.cloudflare.com Tunnel firewall] | di STB: `sudo ss -tunp \| grep cloudflared` |
 
